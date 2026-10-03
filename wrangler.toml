@@ -5,6 +5,5 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "vitalogs"
-# Reemplazar con el id que devuelve `npx wrangler d1 create vitalogs`
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "febf53fa-0841-4952-a7fa-3b83312cf75f"
 migrations_dir = "migrations"
