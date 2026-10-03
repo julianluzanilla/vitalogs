@@ -7,6 +7,7 @@ import { Chip } from '../components/TypeTiles';
 import { useEntries } from '../hooks/useData';
 import { useToast } from '../hooks/useToast';
 import type { ExportFile } from '../lib/export/share';
+import { copyText } from '../lib/clipboard';
 import { countLabel, longDate } from '../lib/format';
 import { computeReport, RANGES, reportText, type RangeKey } from '../lib/report';
 
@@ -54,12 +55,7 @@ export function Reportes() {
   };
 
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(reportText(report));
-      toast('Resumen copiado');
-    } catch {
-      toast('No se pudo copiar');
-    }
+    toast((await copyText(reportText(report))) ? 'Resumen copiado' : 'No se pudo copiar');
   };
 
   const exportAs = async (kind: 'pdf' | 'xlsx') => {

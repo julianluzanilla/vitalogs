@@ -1816,6 +1816,12 @@ html.dark .tag.warn {
   font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   word-break: break-all;
 }
-.temp-pass span {
+.temp-pass > span {
   flex: 1;
+  -webkit-user-select: all;
+  user-select: all;
+}
+.temp-pass .icon-btn {
+  width: 38px;
+  height: 38px;
 }

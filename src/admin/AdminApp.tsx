@@ -5,6 +5,7 @@ import { Icon, Wordmark } from '../components/Icon';
 import { Sheet } from '../components/Sheet';
 import { useTheme } from '../hooks/useTheme';
 import { useToast } from '../hooks/useToast';
+import { copyText } from '../lib/clipboard';
 import { AuthFrame, LoginForm, PasswordForm } from '../pages/Login';
 
 interface AdminUser {
@@ -344,6 +345,7 @@ function CreateUserSheet({ onClose, onCreated, onError }: { onClose: () => void;
 function TempPasswordSheet({ user, password, isNew, onClose }: { user: AdminUser; password: string; isNew: boolean; onClose: () => void }) {
   const toast = useToast();
   const text = `VitaLogs — https://vitalogs.luzaron.uk\nUsuario: ${user.username}\nContraseña temporal: ${password}\n(Te pedirá crear tu propia contraseña al entrar.)`;
+  const copy = async (value: string, msg: string) => toast((await copyText(value)) ? msg : 'No se pudo copiar; mantén presionado el texto para copiarlo');
   return (
     <Sheet onClose={onClose} small label="Contraseña temporal">
       {({ close, dragProps }) => (
@@ -364,29 +366,25 @@ function TempPasswordSheet({ user, password, isNew, onClose }: { user: AdminUser
               <span className="label">Usuario</span>
               <div className="temp-pass" style={{ fontSize: 18 }}>
                 <span>{user.username}</span>
+                <button className="icon-btn ghost" aria-label="Copiar usuario" title="Copiar usuario" onClick={() => copy(user.username, 'Usuario copiado')}>
+                  <Icon name="copy" size={18} />
+                </button>
               </div>
             </div>
             <div className="field">
               <span className="label">Contraseña temporal</span>
               <div className="temp-pass">
                 <span>{password}</span>
+                <button className="icon-btn ghost" aria-label="Copiar contraseña" title="Copiar contraseña" onClick={() => copy(password, 'Contraseña copiada')}>
+                  <Icon name="copy" size={18} />
+                </button>
               </div>
             </div>
           </div>
           <div className="dialog-actions">
-            <button
-              className="btn btn-secondary"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(text);
-                  toast('Datos copiados');
-                } catch {
-                  toast('No se pudo copiar');
-                }
-              }}
-            >
+            <button className="btn btn-secondary" onClick={() => copy(text, 'Mensaje copiado')}>
               <Icon name="copy" size={18} />
-              Copiar
+              Copiar mensaje
             </button>
             {typeof navigator.share === 'function' ? (
               <button className="btn btn-primary" onClick={() => navigator.share({ title: 'Acceso a VitaLogs', text }).catch(() => {})}>
