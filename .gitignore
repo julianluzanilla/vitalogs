@@ -1,0 +1,11 @@
+node_modules
+dist
+dev-dist
+.wrangler
+.dev.vars
+*.local
+*.tsbuildinfo
+.DS_Store
+
+# Notas locales
+Prompt inicial para Claude Code.txt

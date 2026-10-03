@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="VitaLogs">
+<meta name="theme-color" content="#EFF7FF">
+<link rel="apple-touch-icon" href="icons/logo-mark.svg">
+<link rel="icon" href="icons/logo-mark.svg">
+<title>VitaLogs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EFF7FF;--surface:#FFFFFF;--surface2:#F3F9FC;--line:#D9ECF1;--mint:#E1FBD7;--teal:#16947D;--accent:#0F7D69;--ink:#0B2E3B;--muted:#557481;--primary:#0A5E80;--primaryHover:#084E6B;--onprimary:#FFFFFF;--navbg:rgba(255,255,255,0.8);--shadow:0 1px 2px rgba(11,46,59,0.04),0 10px 30px rgba(11,46,59,0.07);--hero1:#0A5E80;--hero2:#16947D;--overlay:rgba(11,46,59,0.38);--danger:#B23A3A;color-scheme:light}
+html.dark{--bg:#061820;--surface:#0C2530;--surface2:#11303D;--line:#1A3F4D;--mint:#123B34;--teal:#2FBF9E;--accent:#62DBBF;--ink:#E6F3F7;--muted:#8DAEB9;--primary:#2FBF9E;--primaryHover:#3ACDAB;--onprimary:#04211B;--navbg:rgba(12,37,48,0.82);--shadow:0 1px 2px rgba(0,0,0,0.3),0 10px 30px rgba(0,0,0,0.3);--hero1:#0A5E80;--hero2:#0F7D69;--overlay:rgba(0,0,0,0.6);--danger:#F08A8A;color-scheme:dark}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-tap-highlight-color:transparent;transition:background-color .25s,color .25s}
+*{box-sizing:border-box}
+a{color:var(--accent)}a:hover{color:var(--teal)}
+input,textarea,button{font-family:inherit}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.7}
+</style>
+</helmet>
+
+<sc-if value="{{ notAuthed }}" hint-placeholder-val="{{ true }}">
+<div style="min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg)">
+  <div style="display:flex;justify-content:flex-end;padding:calc(16px + env(safe-area-inset-top)) 20px 0">
+    <button onClick="{{ toggleTheme }}" aria-label="Cambiar modo" style="width:44px;height:44px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center">
+      <span style="width:20px;height:20px;background:currentColor;-webkit-mask:{{ themeMask }};mask:{{ themeMask }}"></span>
+    </button>
+  </div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px 24px calc(40px + env(safe-area-inset-bottom))">
+    <div style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:36px">
+      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:20px">
+        <img src="icons/logo-mark.svg" alt="" style="width:72px;height:72px;border-radius:22px;box-shadow:0 12px 32px rgba(10,94,128,0.28)">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:38px;font-weight:800;letter-spacing:-0.035em;line-height:1">Vita<span style="color:var(--teal)">Logs</span></div>
+          <div style="font-size:17px;color:var(--muted);line-height:1.4;text-wrap:pretty">Tu registro personal de salud.</div>
+        </div>
+      </div>
+      <form onSubmit="{{ login }}" style="display:flex;flex-direction:column;gap:12px">
+        <label style="display:flex;align-items:center;gap:12px;height:56px;padding:0 16px;border-radius:16px;background:var(--surface);border:1px solid var(--line)">
+          <span style="width:20px;height:20px;flex:none;background:var(--muted);-webkit-mask:url(icons/user.svg) center/contain no-repeat;mask:url(icons/user.svg) center/contain no-repeat"></span>
+          <input value="{{ lu }}" onChange="{{ on.lu }}" autocomplete="username" autocapitalize="none" placeholder="Usuario" style="flex:1;min-width:0;height:100%;border:none;background:transparent;font-size:16px;color:var(--ink);outline:none">
+        </label>
+        <label style="display:flex;align-items:center;gap:12px;height:56px;padding:0 16px;border-radius:16px;background:var(--surface);border:1px solid var(--line)">
+          <span style="width:20px;height:20px;flex:none;background:var(--muted);-webkit-mask:url(icons/lock.svg) center/contain no-repeat;mask:url(icons/lock.svg) center/contain no-repeat"></span>
+          <input type="password" value="{{ lp }}" onChange="{{ on.lp }}" autocomplete="current-password" placeholder="Contraseña" style="flex:1;min-width:0;height:100%;border:none;background:transparent;font-size:16px;color:var(--ink);outline:none">
+        </label>
+        <sc-if value="{{ hasLerr }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:14px;color:var(--danger);font-weight:600;padding:0 4px">{{ lerr }}</div>
+        </sc-if>
+        <button type="submit" style="height:56px;margin-top:8px;border:none;border-radius:16px;background:var(--primary);color:var(--onprimary);font-size:16px;font-weight:700;cursor:pointer;transition:background .15s" style-hover="background:var(--primaryHover)" style-active="transform:scale(0.98)">Entrar</button>
+      </form>
+      <div style="font-size:13px;color:var(--muted)">vitalogs.luzaron.uk</div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ authed }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:{{ shellDir }};min-height:100vh;min-height:100dvh;background:var(--bg)">
+
+  <sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}">
+    <aside style="width:256px;flex:none;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:28px;padding:28px 16px 20px;border-right:1px solid var(--line)">
+      <div style="display:flex;align-items:center;gap:12px;padding:0 10px">
+        <img src="icons/logo-mark.svg" alt="" style="width:36px;height:36px;border-radius:11px">
+        <span style="font-size:21px;font-weight:800;letter-spacing:-0.03em">Vita<span style="color:var(--teal)">Logs</span></span>
+      </div>
+      <button onClick="{{ openNewBlank }}" style="display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border:none;border-radius:14px;background:var(--primary);color:var(--onprimary);font-size:15px;font-weight:700;cursor:pointer" style-hover="background:var(--primaryHover)">
+        <span style="width:18px;height:18px;background:currentColor;-webkit-mask:url(icons/plus.svg) center/contain no-repeat;mask:url(icons/plus.svg) center/contain no-repeat"></span>
+        Nuevo registro
+      </button>
+      <nav style="display:flex;flex-direction:column;gap:2px">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+          <button onClick="{{ t.go }}" style="display:flex;align-items:center;gap:12px;height:44px;padding:0 12px;border:none;border-radius:12px;background:{{ t.bg }};color:{{ t.fg }};font-size:15px;font-weight:600;cursor:pointer;text-align:left">
+            <span style="width:20px;height:20px;flex:none;background:currentColor;-webkit-mask:{{ t.mask }};mask:{{ t.mask }}"></span>
+            {{ t.label }}
+          </button>
+        </sc-for>
+      </nav>
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+        <button onClick="{{ toggleTheme }}" style="display:flex;align-items:center;gap:12px;height:44px;padding:0 12px;border:none;border-radius:12px;background:transparent;color:var(--muted);font-size:15px;font-weight:600;cursor:pointer;text-align:left" style-hover="background:var(--surface)">
+          <span style="width:20px;height:20px;flex:none;background:currentColor;-webkit-mask:{{ themeMask }};mask:{{ themeMask }}"></span>
+          {{ themeLabel }}
+        </button>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:16px;background:var(--surface);border:1px solid var(--line)">
+          <div style="width:36px;height:36px;border-radius:12px;background:var(--mint);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none">{{ initial }}</div>
+          <div style="flex:1;min-width:0;font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ name }}</div>
+          <button onClick="{{ logout }}" title="Cerrar sesión" style="width:34px;height:34px;border:none;border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--surface2)">
+            <span style="width:18px;height:18px;background:currentColor;-webkit-mask:url(icons/logout.svg) center/contain no-repeat;mask:url(icons/logout.svg) center/contain no-repeat"></span>
+          </button>
+        </div>
+      </div>
+    </aside>
+  </sc-if>
+
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <sc-if value="{{ narrow }}" hint-placeholder-val="{{ false }}">
+      <header style="position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 20px 10px;background:var(--navbg);-webkit-backdrop-filter:saturate(1.6) blur(16px);backdrop-filter:saturate(1.6) blur(16px)">
+        <img src="icons/logo-mark.svg" alt="" style="width:30px;height:30px;border-radius:9px">
+        <span style="font-size:18px;font-weight:800;letter-spacing:-0.03em;flex:1">Vita<span style="color:var(--teal)">Logs</span></span>
+        <button onClick="{{ toggleTheme }}" aria-label="Cambiar modo" style="width:40px;height:40px;border-radius:12px;border:none;background:var(--surface);color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center">
+          <span style="width:19px;height:19px;background:currentColor;-webkit-mask:{{ themeMask }};mask:{{ themeMask }}"></span>
+        </button>
+        <button onClick="{{ goPerfil }}" style="width:40px;height:40px;border-radius:12px;border:none;background:var(--mint);color:var(--accent);font-weight:800;font-size:15px;cursor:pointer">{{ initial }}</button>
+      </header>
+    </sc-if>
+
+    <div style="width:100%;max-width:1120px;margin:0 auto;padding:{{ contentPad }};display:flex;flex-direction:column;gap:28px">
+
+      <sc-if value="{{ isHoy }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:14px;color:var(--muted);font-weight:600">{{ todayLong }}</div>
+          <h1 style="margin:0;font-size:32px;font-weight:800;letter-spacing:-0.035em;line-height:1.1">{{ greeting }}</h1>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:28px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:28px">
+            <section style="display:grid;grid-template-columns:1fr 1fr;border-radius:28px;background:linear-gradient(140deg,var(--hero1),var(--hero2));color:#fff;overflow:hidden;box-shadow:0 14px 36px rgba(10,94,128,0.22)">
+              <div onClick="{{ newPresion }}" style="display:flex;flex-direction:column;gap:6px;padding:22px 20px;cursor:pointer;border-right:1px solid rgba(255,255,255,0.18)">
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">
+                  <span style="width:16px;height:16px;background:#fff;-webkit-mask:url(icons/presion.svg) center/contain no-repeat;mask:url(icons/presion.svg) center/contain no-repeat"></span>Presión
+                </div>
+                <div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:34px;font-weight:800;letter-spacing:-0.03em;font-variant-numeric:tabular-nums">{{ heroBp }}</span><span style="font-size:13px;font-weight:600">mmHg</span></div>
+                <div style="font-size:13px;color:#E1FBD7">{{ heroBpWhen }}</div>
+              </div>
+              <div onClick="{{ newLpm }}" style="display:flex;flex-direction:column;gap:6px;padding:22px 20px;cursor:pointer">
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">
+                  <span style="width:16px;height:16px;background:#fff;-webkit-mask:url(icons/lpm.svg) center/contain no-repeat;mask:url(icons/lpm.svg) center/contain no-repeat"></span>Pulso
+                </div>
+                <div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:34px;font-weight:800;letter-spacing:-0.03em;font-variant-numeric:tabular-nums">{{ heroHr }}</span><span style="font-size:13px;font-weight:600">lpm</span></div>
+                <div style="font-size:13px;color:#E1FBD7">{{ heroHrWhen }}</div>
+              </div>
+            </section>
+            <section style="display:flex;flex-direction:column;gap:14px">
+              <h2 style="margin:0;font-size:17px;font-weight:700;letter-spacing:-0.01em">Registrar</h2>
+              <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+                <sc-for list="{{ typeTiles }}" as="tt" hint-placeholder-count="6">
+                  <button onClick="{{ tt.open }}" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:18px;padding:14px;min-height:104px;border:1px solid var(--line);border-radius:22px;background:var(--surface);cursor:pointer;color:var(--ink);text-align:left;transition:transform .12s,border-color .15s" style-hover="border-color:var(--teal)" style-active="transform:scale(0.96)">
+                    <span style="width:42px;height:42px;border-radius:14px;background:var(--mint);display:flex;align-items:center;justify-content:center">
+                      <span style="width:21px;height:21px;background:var(--accent);-webkit-mask:{{ tt.mask }};mask:{{ tt.mask }}"></span>
+                    </span>
+                    <span style="font-size:14px;font-weight:700;line-height:1.2">{{ tt.label }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </section>
+          </div>
+          <section style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <h2 style="margin:0;font-size:17px;font-weight:700;letter-spacing:-0.01em">Hoy</h2>
+              <span style="font-size:14px;color:var(--muted);font-weight:500">{{ todayCount }}</span>
+            </div>
+            <sc-if value="{{ todayEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:32px 20px;text-align:center;border:1.5px dashed var(--line);border-radius:22px;color:var(--muted);font-size:15px">Aún no hay registros hoy.</div>
+            </sc-if>
+            <div style="display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:24px;overflow:hidden">
+              <sc-for list="{{ todayItems }}" as="e" hint-placeholder-count="3">
+                <div onClick="{{ e.edit }}" style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-top:{{ e.sep }};cursor:pointer" style-hover="background:var(--surface2)">
+                  <span style="width:44px;flex:none;font-size:13px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums">{{ e.time }}</span>
+                  <span style="width:40px;height:40px;flex:none;border-radius:13px;background:var(--mint);display:flex;align-items:center;justify-content:center">
+                    <span style="width:20px;height:20px;background:var(--accent);-webkit-mask:{{ e.mask }};mask:{{ e.mask }}"></span>
+                  </span>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                    <div style="font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.title }}</div>
+                    <div style="font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.detail }}</div>
+                  </div>
+                  <sc-if value="{{ e.hasBadge }}" hint-placeholder-val="{{ true }}">
+                    <span style="flex:none;font-size:15px;font-weight:800;letter-spacing:-0.01em;font-variant-numeric:tabular-nums">{{ e.badge }}</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isHistorial }}" hint-placeholder-val="{{ false }}">
+        <h1 style="margin:0;font-size:32px;font-weight:800;letter-spacing:-0.035em">Historial</h1>
+        <div style="display:flex;gap:8px;overflow-x:auto;margin:-8px -20px 0;padding:0 20px 4px;scrollbar-width:none">
+          <sc-for list="{{ filterChips }}" as="c" hint-placeholder-count="7">
+            <button onClick="{{ c.pick }}" style="flex:none;height:38px;padding:0 16px;border-radius:999px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">{{ c.label }}</button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ histEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:32px 20px;text-align:center;border:1.5px dashed var(--line);border-radius:22px;color:var(--muted);font-size:15px">No hay registros de este tipo.</div>
+        </sc-if>
+        <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+          <section style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 4px">
+              <h2 style="margin:0;font-size:15px;font-weight:700">{{ g.label }}</h2>
+              <span style="font-size:13px;color:var(--muted)">{{ g.count }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:24px;overflow:hidden">
+              <sc-for list="{{ g.items }}" as="e" hint-placeholder-count="3">
+                <div onClick="{{ e.edit }}" style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-top:{{ e.sep }};cursor:pointer" style-hover="background:var(--surface2)">
+                  <span style="width:44px;flex:none;font-size:13px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums">{{ e.time }}</span>
+                  <span style="width:40px;height:40px;flex:none;border-radius:13px;background:var(--mint);display:flex;align-items:center;justify-content:center">
+                    <span style="width:20px;height:20px;background:var(--accent);-webkit-mask:{{ e.mask }};mask:{{ e.mask }}"></span>
+                  </span>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                    <div style="font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.title }}</div>
+                    <div style="font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.detail }}</div>
+                  </div>
+                  <sc-if value="{{ e.hasBadge }}" hint-placeholder-val="{{ true }}">
+                    <span style="flex:none;font-size:15px;font-weight:800;letter-spacing:-0.01em;font-variant-numeric:tabular-nums">{{ e.badge }}</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </sc-for>
+      </sc-if>
+
+      <sc-if value="{{ isReportes }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <h1 style="margin:0;font-size:32px;font-weight:800;letter-spacing:-0.035em">Reportes</h1>
+            <div style="font-size:15px;color:var(--muted)">Resumen para tu médico</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onClick="{{ copyReport }}" style="display:flex;align-items:center;gap:8px;height:46px;padding:0 16px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font-size:15px;font-weight:700;cursor:pointer" style-hover="border-color:var(--teal)">
+              <span style="width:18px;height:18px;background:currentColor;-webkit-mask:url(icons/copy.svg) center/contain no-repeat;mask:url(icons/copy.svg) center/contain no-repeat"></span>Copiar
+            </button>
+            <button onClick="{{ printReport }}" style="display:flex;align-items:center;gap:8px;height:46px;padding:0 18px;border:none;border-radius:14px;background:var(--primary);color:var(--onprimary);font-size:15px;font-weight:700;cursor:pointer" style-hover="background:var(--primaryHover)">
+              <span style="width:18px;height:18px;background:currentColor;-webkit-mask:url(icons/share.svg) center/contain no-repeat;mask:url(icons/share.svg) center/contain no-repeat"></span>Exportar PDF
+            </button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:18px;padding:20px;background:var(--surface);border:1px solid var(--line);border-radius:24px">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:13px;font-weight:700;color:var(--muted)">Periodo</span>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-for list="{{ rangeChips }}" as="c" hint-placeholder-count="5">
+                <button onClick="{{ c.pick }}" style="height:38px;padding:0 14px;border-radius:999px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-size:14px;font-weight:600;cursor:pointer">{{ c.label }}</button>
+              </sc-for>
+            </div>
+            <sc-if value="{{ isCustom }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:420px">
+                <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted);font-weight:600">Desde
+                  <input type="date" value="{{ from }}" onChange="{{ on.from }}" style="height:46px;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:16px;color:var(--ink);background:var(--surface2)">
+                </label>
+                <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted);font-weight:600">Hasta
+                  <input type="date" value="{{ to }}" onChange="{{ on.to }}" style="height:46px;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:16px;color:var(--ink);background:var(--surface2)">
+                </label>
+              </div>
+            </sc-if>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:13px;font-weight:700;color:var(--muted)">Incluir</span>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-for list="{{ rtypeChips }}" as="c" hint-placeholder-count="6">
+                <button onClick="{{ c.pick }}" style="height:38px;padding:0 14px;border-radius:999px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-size:14px;font-weight:600;cursor:pointer">{{ c.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <article style="display:flex;flex-direction:column;gap:28px;padding:24px;background:var(--surface);border:1px solid var(--line);border-radius:24px">
+          <header style="display:flex;flex-direction:column;gap:6px;padding-bottom:20px;border-bottom:1px solid var(--line)">
+            <div style="font-size:22px;font-weight:800;letter-spacing:-0.02em">Reporte de salud</div>
+            <div style="font-size:15px;font-weight:600">{{ name }} · {{ rangeLabel }}</div>
+            <div style="font-size:13px;color:var(--muted)">Generado el {{ generated }} · {{ reportCount }}</div>
+          </header>
+          <sc-if value="{{ reportEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="color:var(--muted);font-size:15px">No hay registros en este periodo.</div>
+          </sc-if>
+          <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="3">
+            <section style="display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="width:34px;height:34px;border-radius:11px;background:var(--mint);display:flex;align-items:center;justify-content:center">
+                  <span style="width:17px;height:17px;background:var(--accent);-webkit-mask:{{ sec.mask }};mask:{{ sec.mask }}"></span>
+                </span>
+                <h3 style="margin:0;font-size:17px;font-weight:700">{{ sec.title }}</h3>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">
+                <sc-for list="{{ sec.stats }}" as="st" hint-placeholder-count="4">
+                  <div style="display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:16px;background:var(--surface2)">
+                    <span style="font-size:12px;color:var(--muted);font-weight:600">{{ st.label }}</span>
+                    <span style="font-size:19px;font-weight:800;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">{{ st.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;border:1px solid var(--line);border-radius:16px;max-height:260px;overflow-y:auto">
+                <sc-for list="{{ sec.rows }}" as="r" hint-placeholder-count="3">
+                  <div style="display:flex;gap:14px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:14px">
+                    <span style="flex:none;width:112px;color:var(--muted);font-variant-numeric:tabular-nums">{{ r.when }}</span>
+                    <span style="flex:1;min-width:0">{{ r.text }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </section>
+          </sc-for>
+        </article>
+      </sc-if>
+
+      <sc-if value="{{ isPerfil }}" hint-placeholder-val="{{ false }}">
+        <h1 style="margin:0;font-size:32px;font-weight:800;letter-spacing:-0.035em">Perfil</h1>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:20px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <section style="display:flex;align-items:center;gap:14px;padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:24px">
+              <div style="width:56px;height:56px;border-radius:18px;background:var(--mint);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;flex:none">{{ initial }}</div>
+              <label style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:12px;font-weight:700;color:var(--muted)">Nombre en reportes</span>
+                <input value="{{ name }}" onChange="{{ on.name }}" style="height:44px;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:16px;color:var(--ink);background:var(--surface2);outline:none" style-focus="border-color:var(--teal)">
+              </label>
+            </section>
+            <section style="display:flex;flex-direction:column;padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:24px">
+              <button onClick="{{ toggleTheme }}" style="display:flex;align-items:center;gap:14px;height:56px;padding:0 12px;border:none;border-radius:18px;background:transparent;color:var(--ink);font-size:15px;font-weight:600;cursor:pointer;text-align:left" style-hover="background:var(--surface2)">
+                <span style="width:20px;height:20px;background:var(--accent);-webkit-mask:url(icons/moon.svg) center/contain no-repeat;mask:url(icons/moon.svg) center/contain no-repeat"></span>
+                <span style="flex:1">Modo oscuro</span>
+                <span style="width:50px;height:30px;border-radius:999px;background:{{ switchBg }};padding:3px;display:flex;justify-content:{{ switchJustify }};transition:background .2s">
+                  <span style="width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.25)"></span>
+                </span>
+              </button>
+              <button onClick="{{ backup }}" style="display:flex;align-items:center;gap:14px;height:56px;padding:0 12px;border:none;border-radius:18px;background:transparent;color:var(--ink);font-size:15px;font-weight:600;cursor:pointer;text-align:left" style-hover="background:var(--surface2)">
+                <span style="width:20px;height:20px;background:var(--accent);-webkit-mask:url(icons/download.svg) center/contain no-repeat;mask:url(icons/download.svg) center/contain no-repeat"></span>
+                <span style="flex:1">Descargar respaldo</span>
+                <span style="font-size:13px;color:var(--muted);font-weight:500">{{ entryCount }}</span>
+              </button>
+              <label style="display:flex;align-items:center;gap:14px;height:56px;padding:0 12px;border-radius:18px;color:var(--ink);font-size:15px;font-weight:600;cursor:pointer" style-hover="background:var(--surface2)">
+                <span style="width:20px;height:20px;background:var(--accent);-webkit-mask:url(icons/upload.svg) center/contain no-repeat;mask:url(icons/upload.svg) center/contain no-repeat"></span>
+                <span style="flex:1">Restaurar respaldo</span>
+                <input type="file" accept="application/json,.json" onChange="{{ restore }}" style="display:none">
+              </label>
+              <button onClick="{{ logout }}" style="display:flex;align-items:center;gap:14px;height:56px;padding:0 12px;border:none;border-radius:18px;background:transparent;color:var(--danger);font-size:15px;font-weight:600;cursor:pointer;text-align:left" style-hover="background:var(--surface2)">
+                <span style="width:20px;height:20px;background:currentColor;-webkit-mask:url(icons/logout.svg) center/contain no-repeat;mask:url(icons/logout.svg) center/contain no-repeat"></span>
+                Cerrar sesión
+              </button>
+            </section>
+          </div>
+          <section style="display:flex;flex-direction:column;gap:14px;padding:20px;background:var(--surface);border:1px solid var(--line);border-radius:24px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="width:34px;height:34px;border-radius:11px;background:var(--mint);display:flex;align-items:center;justify-content:center">
+                <span style="width:17px;height:17px;background:var(--accent);-webkit-mask:url(icons/medicamento.svg) center/contain no-repeat;mask:url(icons/medicamento.svg) center/contain no-repeat"></span>
+              </span>
+              <h2 style="margin:0;font-size:17px;font-weight:700">Mis medicamentos</h2>
+            </div>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ medRows }}" as="m" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--line)">
+                  <span style="flex:1;font-weight:700;font-size:15px">{{ m.name }}</span>
+                  <span style="font-size:14px;color:var(--muted)">{{ m.dose }}</span>
+                  <button onClick="{{ m.remove }}" title="Eliminar" style="width:36px;height:36px;border:none;border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--surface2)">
+                    <span style="width:17px;height:17px;background:currentColor;-webkit-mask:url(icons/trash.svg) center/contain no-repeat;mask:url(icons/trash.svg) center/contain no-repeat"></span>
+                  </button>
+                </div>
+              </sc-for>
+            </div>
+            <form onSubmit="{{ addMed }}" style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto;gap:8px">
+              <input value="{{ newMed }}" onChange="{{ on.newMed }}" placeholder="Nombre" style="height:46px;min-width:0;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:16px;color:var(--ink);background:var(--surface2);outline:none" style-focus="border-color:var(--teal)">
+              <input value="{{ newDose }}" onChange="{{ on.newDose }}" placeholder="Dosis" style="height:46px;min-width:0;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:16px;color:var(--ink);background:var(--surface2);outline:none" style-focus="border-color:var(--teal)">
+              <button type="submit" title="Agregar" style="width:46px;height:46px;border:none;border-radius:12px;background:var(--primary);color:var(--onprimary);cursor:pointer;display:flex;align-items:center;justify-content:center">
+                <span style="width:18px;height:18px;background:currentColor;-webkit-mask:url(icons/plus.svg) center/contain no-repeat;mask:url(icons/plus.svg) center/contain no-repeat"></span>
+              </button>
+            </form>
+          </section>
+        </div>
+      </sc-if>
+
+    </div>
+  </main>
+
+  <sc-if value="{{ narrow }}" hint-placeholder-val="{{ false }}">
+    <nav style="position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:10;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;height:68px;padding:0 6px;border-radius:26px;background:var(--navbg);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);border:1px solid var(--line);box-shadow:var(--shadow)">
+      <sc-for list="{{ tabsL }}" as="t" hint-placeholder-count="2">
+        <button onClick="{{ t.go }}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:56px;border:none;background:transparent;color:{{ t.tfg }};font-size:11px;font-weight:700;cursor:pointer">
+          <span style="width:22px;height:22px;background:currentColor;-webkit-mask:{{ t.mask }};mask:{{ t.mask }}"></span>
+          {{ t.label }}
+        </button>
+      </sc-for>
+      <div style="display:flex;justify-content:center">
+        <button onClick="{{ openNewBlank }}" aria-label="Nuevo registro" style="width:52px;height:52px;border:none;border-radius:18px;background:var(--primary);color:var(--onprimary);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 20px rgba(10,94,128,0.3)" style-active="transform:scale(0.92)">
+          <span style="width:24px;height:24px;background:currentColor;-webkit-mask:url(icons/plus.svg) center/contain no-repeat;mask:url(icons/plus.svg) center/contain no-repeat"></span>
+        </button>
+      </div>
+      <sc-for list="{{ tabsR }}" as="t" hint-placeholder-count="2">
+        <button onClick="{{ t.go }}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:56px;border:none;background:transparent;color:{{ t.tfg }};font-size:11px;font-weight:700;cursor:pointer">
+          <span style="width:22px;height:22px;background:currentColor;-webkit-mask:{{ t.mask }};mask:{{ t.mask }}"></span>
+          {{ t.label }}
+        </button>
+      </sc-for>
+    </nav>
+  </sc-if>
+
+  <sc-if value="{{ formOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeForm }}" style="position:fixed;inset:0;z-index:20;background:var(--overlay);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:flex;align-items:{{ overlayAlign }};justify-content:center;padding:{{ overlayPad }}">
+      <div onClick="{{ stop }}" style="width:100%;max-width:560px;max-height:{{ panelMaxH }};display:flex;flex-direction:column;background:var(--bg);border-radius:{{ panelRadius }};overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.25)">
+        <sc-if value="{{ narrow }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;justify-content:center;padding-top:8px"><span style="width:40px;height:5px;border-radius:999px;background:var(--line)"></span></div>
+        </sc-if>
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px">
+          <sc-if value="{{ f.hasType }}" hint-placeholder-val="{{ false }}">
+            <span style="width:42px;height:42px;flex:none;border-radius:14px;background:var(--mint);display:flex;align-items:center;justify-content:center">
+              <span style="width:21px;height:21px;background:var(--accent);-webkit-mask:{{ f.mask }};mask:{{ f.mask }}"></span>
+            </span>
+          </sc-if>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:20px;font-weight:800;letter-spacing:-0.02em">{{ f.heading }}</span>
+            <sc-if value="{{ f.canChange }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ changeType }}" style="align-self:flex-start;padding:0;border:none;background:none;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer">Cambiar tipo</button>
+            </sc-if>
+          </div>
+          <button onClick="{{ closeForm }}" aria-label="Cerrar" style="width:38px;height:38px;flex:none;border:none;border-radius:12px;background:var(--surface);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center">
+            <span style="width:18px;height:18px;background:currentColor;-webkit-mask:url(icons/x.svg) center/contain no-repeat;mask:url(icons/x.svg) center/contain no-repeat"></span>
+          </button>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:6px 18px 20px;display:flex;flex-direction:column;gap:22px">
+          <sc-if value="{{ f.pickType }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+              <sc-for list="{{ formTiles }}" as="tt" hint-placeholder-count="6">
+                <button onClick="{{ tt.open }}" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:18px;padding:14px;min-height:104px;border:1px solid var(--line);border-radius:22px;background:var(--surface);cursor:pointer;color:var(--ink);text-align:left" style-hover="border-color:var(--teal)" style-active="transform:scale(0.96)">
+                  <span style="width:42px;height:42px;border-radius:14px;background:var(--mint);display:flex;align-items:center;justify-content:center">
+                    <span style="width:21px;height:21px;background:var(--accent);-webkit-mask:{{ tt.mask }};mask:{{ tt.mask }}"></span>
+                  </span>
+                  <span style="font-size:14px;font-weight:700;line-height:1.2">{{ tt.label }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.fields }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <label style="display:flex;flex-direction:column;gap:8px;min-width:0"><span style="font-size:13px;font-weight:700;color:var(--muted)">Fecha</span>
+                <input type="date" value="{{ f.date }}" onChange="{{ fo.date }}" style="height:50px;width:100%;min-width:0;border-radius:14px;border:1px solid var(--line);padding:0 14px;font-size:16px;font-weight:600;color:var(--ink);background:var(--surface)">
+              </label>
+              <label style="display:flex;flex-direction:column;gap:8px;min-width:0"><span style="font-size:13px;font-weight:700;color:var(--muted)">Hora</span>
+                <input type="time" value="{{ f.time }}" onChange="{{ fo.time }}" style="height:50px;width:100%;min-width:0;border-radius:14px;border:1px solid var(--line);padding:0 14px;font-size:16px;font-weight:600;color:var(--ink);background:var(--surface)">
+              </label>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.isDolor }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:13px;font-weight:700;color:var(--muted)">Zona</span>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <sc-for list="{{ zoneChips }}" as="c" hint-placeholder-count="8">
+                  <button onClick="{{ c.pick }}" style="height:42px;padding:0 16px;border-radius:999px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-size:15px;font-weight:600;cursor:pointer">{{ c.label }}</button>
+                </sc-for>
+              </div>
+              <sc-if value="{{ f.zoneIsOther }}" hint-placeholder-val="{{ false }}">
+                <input value="{{ f.zoneOther }}" onChange="{{ fo.zoneOther }}" placeholder="Especifica la zona" style="height:50px;border-radius:14px;border:1px solid var(--line);padding:0 14px;font-size:16px;color:var(--ink);background:var(--surface);outline:none" style-focus="border-color:var(--teal)">
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.hasDuration }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:13px;font-weight:700;color:var(--muted)">Duración</span>
+              <div style="display:flex;gap:8px;align-items:stretch">
+                <label style="flex:1;display:flex;align-items:center;gap:8px;height:50px;padding:0 14px;border-radius:14px;border:1px solid var(--line);background:{{ f.durBg }};opacity:{{ f.durOpacity }}">
+                  <input type="number" inputmode="numeric" min="0" value="{{ f.duration }}" onChange="{{ fo.duration }}" disabled="{{ f.constant }}" placeholder="0" style="flex:1;min-width:0;border:none;background:transparent;font-size:18px;font-weight:700;color:var(--ink);outline:none">
+                  <span style="font-size:14px;color:var(--muted);font-weight:600">min</span>
+                </label>
+                <sc-if value="{{ f.isDolor }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ toggleConstant }}" style="height:50px;padding:0 16px;border-radius:14px;border:1px solid {{ constChip.bd }};background:{{ constChip.bg }};color:{{ constChip.fg }};font-size:15px;font-weight:700;cursor:pointer">Constante</button>
+                </sc-if>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between">
+                <span style="font-size:13px;font-weight:700;color:var(--muted)">Intensidad</span>
+                <span style="font-size:14px;font-weight:700;color:var(--accent)">{{ f.intLabel }}</span>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px">
+                <sc-for list="{{ intChips }}" as="c" hint-placeholder-count="10">
+                  <button onClick="{{ c.pick }}" style="height:46px;padding:0;border-radius:12px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-size:15px;font-weight:800;cursor:pointer;font-variant-numeric:tabular-nums">{{ c.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.isLpm }}" hint-placeholder-val="{{ false }}">
+            <label style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:22px 16px;border-radius:22px;background:var(--surface);border:1px solid var(--line)">
+              <span style="font-size:13px;font-weight:700;color:var(--muted)">Resultado</span>
+              <input type="number" inputmode="numeric" value="{{ f.value }}" onChange="{{ fo.value }}" placeholder="72" style="width:100%;border:none;background:transparent;text-align:center;font-size:56px;font-weight:800;letter-spacing:-0.04em;color:var(--ink);outline:none;font-variant-numeric:tabular-nums">
+              <span style="font-size:14px;font-weight:700;color:var(--muted)">latidos por minuto</span>
+            </label>
+          </sc-if>
+
+          <sc-if value="{{ f.isPresion }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;padding:18px 12px;border-radius:22px;background:var(--surface);border:1px solid var(--line)">
+                <label style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0"><span style="font-size:12px;font-weight:700;color:var(--muted)">Sistólica</span>
+                  <input type="number" inputmode="numeric" value="{{ f.sys }}" onChange="{{ fo.sys }}" placeholder="120" style="width:100%;min-width:0;border:none;background:transparent;text-align:center;font-size:44px;font-weight:800;letter-spacing:-0.04em;color:var(--ink);outline:none">
+                </label>
+                <span style="font-size:36px;font-weight:300;color:var(--muted)">/</span>
+                <label style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0"><span style="font-size:12px;font-weight:700;color:var(--muted)">Diastólica</span>
+                  <input type="number" inputmode="numeric" value="{{ f.dia }}" onChange="{{ fo.dia }}" placeholder="80" style="width:100%;min-width:0;border:none;background:transparent;text-align:center;font-size:44px;font-weight:800;letter-spacing:-0.04em;color:var(--ink);outline:none">
+                </label>
+              </div>
+              <label style="display:flex;align-items:center;gap:10px;height:50px;padding:0 14px;border-radius:14px;border:1px solid var(--line);background:var(--surface)">
+                <span style="width:18px;height:18px;flex:none;background:var(--accent);-webkit-mask:url(icons/lpm.svg) center/contain no-repeat;mask:url(icons/lpm.svg) center/contain no-repeat"></span>
+                <span style="font-size:14px;font-weight:600;color:var(--muted)">Pulso (opcional)</span>
+                <input type="number" inputmode="numeric" value="{{ f.pulse }}" onChange="{{ fo.pulse }}" placeholder="—" style="flex:1;min-width:0;border:none;background:transparent;text-align:right;font-size:18px;font-weight:700;color:var(--ink);outline:none">
+                <span style="font-size:14px;color:var(--muted);font-weight:600">lpm</span>
+              </label>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.isMed }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:13px;font-weight:700;color:var(--muted)">Medicamento</span>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <sc-for list="{{ medChips }}" as="c" hint-placeholder-count="4">
+                  <button onClick="{{ c.pick }}" style="height:42px;padding:0 16px;border-radius:999px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-size:15px;font-weight:600;cursor:pointer">{{ c.label }}</button>
+                </sc-for>
+              </div>
+              <sc-if value="{{ noMeds }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:14px;color:var(--muted)">Agrega tus medicamentos en Perfil.</div>
+              </sc-if>
+            </div>
+            <label style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;font-weight:700;color:var(--muted)">Dosis</span>
+              <input value="{{ f.dose }}" onChange="{{ fo.dose }}" placeholder="p. ej. 500 mg" style="height:50px;border-radius:14px;border:1px solid var(--line);padding:0 14px;font-size:16px;color:var(--ink);background:var(--surface);outline:none" style-focus="border-color:var(--teal)">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;font-weight:700;color:var(--muted)">Síntoma presentado · opcional</span>
+              <input value="{{ f.symptom }}" onChange="{{ fo.symptom }}" placeholder="p. ej. dolor de cabeza" style="height:50px;border-radius:14px;border:1px solid var(--line);padding:0 14px;font-size:16px;color:var(--ink);background:var(--surface);outline:none" style-focus="border-color:var(--teal)">
+            </label>
+          </sc-if>
+
+          <sc-if value="{{ f.isBano }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <sc-for list="{{ kindChips }}" as="c" hint-placeholder-count="2">
+                <button onClick="{{ c.pick }}" style="height:60px;border-radius:18px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-size:17px;font-weight:700;cursor:pointer">{{ c.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:13px;font-weight:700;color:var(--muted)">Cantidad</span>
+              <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px;background:var(--surface2);border:1px solid var(--line);border-radius:16px">
+                <sc-for list="{{ amountChips }}" as="c" hint-placeholder-count="4">
+                  <button onClick="{{ c.pick }}" style="height:42px;padding:0 2px;border-radius:12px;border:none;background:{{ c.sbg }};color:{{ c.sfg }};box-shadow:{{ c.ssh }};font-size:14px;font-weight:700;cursor:pointer">{{ c.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.hasObs }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:13px;font-weight:700;color:var(--muted)">Observaciones · opcional</span>
+              <sc-if value="{{ f.hasPresets }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  <sc-for list="{{ obsChips }}" as="c" hint-placeholder-count="6">
+                    <button onClick="{{ c.pick }}" style="height:36px;padding:0 12px;border-radius:999px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-size:13px;font-weight:600;cursor:pointer">{{ c.label }}</button>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <textarea value="{{ f.obs }}" onChange="{{ fo.obs }}" rows="3" placeholder="{{ f.obsPh }}" style="border-radius:14px;border:1px solid var(--line);padding:12px 14px;font-size:16px;color:var(--ink);background:var(--surface);outline:none;resize:vertical" style-focus="border-color:var(--teal)"></textarea>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.hasErr }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:14px;font-weight:700;color:var(--danger)">{{ f.err }}</div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ f.fields }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:10px;padding:12px 18px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line)">
+            <sc-if value="{{ f.editing }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ deleteEntry }}" title="Eliminar" style="width:54px;height:54px;flex:none;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--danger);cursor:pointer;display:flex;align-items:center;justify-content:center">
+                <span style="width:20px;height:20px;background:currentColor;-webkit-mask:url(icons/trash.svg) center/contain no-repeat;mask:url(icons/trash.svg) center/contain no-repeat"></span>
+              </button>
+            </sc-if>
+            <button onClick="{{ saveForm }}" style="flex:1;height:54px;border:none;border-radius:16px;background:var(--primary);color:var(--onprimary);font-size:16px;font-weight:700;cursor:pointer" style-hover="background:var(--primaryHover)" style-active="transform:scale(0.98)">{{ f.saveLabel }}</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:50%;bottom:{{ toastBottom }};transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:8px;padding:12px 18px;border-radius:16px;background:var(--ink);color:var(--bg);font-size:14px;font-weight:700;box-shadow:var(--shadow);white-space:nowrap">{{ toast }}</div>
+  </sc-if>
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const mk=p=>`url(${p}) center/contain no-repeat`;
+const TYPES={
+  dolor:{label:'Dolor',icon:'icons/dolor.svg'},
+  mareo:{label:'Mareo',icon:'icons/mareo.svg'},
+  lpm:{label:'Pulso',icon:'icons/lpm.svg'},
+  presion:{label:'Presión',icon:'icons/presion.svg'},
+  medicamento:{label:'Medicamento',icon:'icons/medicamento.svg'},
+  bano:{label:'Baño',icon:'icons/bano.svg'}
+};
+const ORDER=['dolor','mareo','lpm','presion','medicamento','bano'];
+const ZONES=['Cabeza','Espalda','Ciática','Cuello','Ojos','Muslo','Pantorrilla','Otro'];
+const OBS=['En reposo +10 min','Al despertar','Después de subir escaleras','Después de comer','Después de ejercicio','Antes de dormir'];
+const AMOUNTS=['Muy poco','Poco','Regular','Mucho'];
+const DEFAULT_MEDS=[{name:'Losartán',dose:'50 mg'},{name:'Paracetamol',dose:'500 mg'},{name:'Ibuprofeno',dose:'400 mg'},{name:'Betahistina',dose:'16 mg'},{name:'Omeprazol',dose:'20 mg'}];
+const KEY='vitalogs.v1';
+const SCR='scr'+'ipt';
+const pad=n=>String(n).padStart(2,'0');
+const ds=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const tms=d=>pad(d.getHours())+':'+pad(d.getMinutes());
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const dayLabel=date=>{const t=new Date(),y=new Date();y.setDate(t.getDate()-1);if(date===ds(t))return 'Hoy';if(date===ds(y))return 'Ayer';return cap(new Date(date+'T12:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}))};
+const shortDate=date=>new Date(date+'T12:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+const longDate=date=>new Date(date+'T12:00').toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+const intLabel=n=>{n=+n;return n<=3?'Leve':n<=6?'Moderado':n<=8?'Fuerte':'Severo'};
+const zoneName=e=>e.zone==='Otro'?(e.zoneOther||'Otro'):e.zone;
+const rel=e=>{if(!e)return 'Sin registros';const m=Math.round((Date.now()-new Date(e.date+'T'+e.time).getTime())/60000);if(m<1)return 'Justo ahora';if(m<60)return 'Hace '+m+' min';if(m<1440)return 'Hace '+Math.round(m/60)+' h';return dayLabel(e.date)+' · '+e.time};
+function summary(e){
+  switch(e.type){
+    case 'dolor':return{title:'Dolor · '+zoneName(e),detail:(e.constant?'Constante':(e.duration?e.duration+' min':'Duración no indicada'))+' · '+intLabel(e.intensity),badge:e.intensity+'/10'};
+    case 'mareo':return{title:'Mareo',detail:(e.duration?e.duration+' min':'Duración no indicada')+' · '+intLabel(e.intensity),badge:e.intensity+'/10'};
+    case 'lpm':return{title:'Pulso',detail:e.obs||'Sin observaciones',badge:e.value+' lpm'};
+    case 'presion':return{title:'Presión arterial',detail:[e.pulse?e.pulse+' lpm':'',e.obs].filter(Boolean).join(' · ')||'Sin observaciones',badge:e.sys+'/'+e.dia};
+    case 'medicamento':return{title:e.med,detail:[e.dose,e.symptom?'Por: '+e.symptom:''].filter(Boolean).join(' · ')||'—',badge:''};
+    case 'bano':return{title:'Baño · '+(e.kind==='popo'?'Popó':'Pipí'),detail:[e.amount,e.obs].filter(Boolean).join(' · '),badge:''};
+  }
+  return{title:'',detail:'',badge:''};
+}
+function seed(){
+  const out=[],now=new Date();let id=1;
+  const add=(ago,h,m,type,data)=>{const d=new Date(now);d.setDate(d.getDate()-ago);d.setHours(h,m,0,0);if(d>now)return;out.push(Object.assign({id:'s'+(id++),type,date:ds(d),time:tms(d)},data))};
+  for(let i=0;i<14;i++){
+    add(i,7,10,'presion',{sys:116+((i*7)%19),dia:74+((i*5)%13),pulse:64+((i*3)%10),obs:'Al despertar'});
+    add(i,8,0,'medicamento',{med:'Losartán',dose:'50 mg',symptom:''});
+    add(i,7,40,'bano',{kind:'pipi',amount:'Regular',obs:''});
+    if(i%2===0)add(i,13,30,'lpm',{value:74+((i*11)%26),obs:'Después de subir escaleras'});
+    if(i%2===1)add(i,10,5,'bano',{kind:'popo',amount:['Poco','Regular','Mucho'][i%3],obs:''});
+    if(i%3===0){add(i,17,45,'dolor',{zone:['Cabeza','Espalda','Cuello','Ciática'][i%4],zoneOther:'',constant:i%6===3,duration:i%6===3?'':30+i*5,intensity:3+(i%5)});add(i,18,5,'medicamento',{med:'Paracetamol',dose:'500 mg',symptom:'Dolor'})}
+    if(i%4===1)add(i,11,20,'mareo',{duration:5+i,intensity:2+(i%4)});
+  }
+  return out;
+}
+
+class Component extends DCLogic {
+  state = this.initial();
+  initial(){
+    let s={};try{s=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+    const prefersDark=typeof window!=='undefined'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return{authed:!!s.authed,name:s.name||'',entries:s.entries||seed(),meds:s.meds||DEFAULT_MEDS,dark:s.dark!=null?!!s.dark:prefersDark,
+      tab:'hoy',wide:typeof window!=='undefined'?window.innerWidth>=700:true,form:null,filter:'all',
+      range:'30',from:'',to:'',rtypes:ORDER.slice(),toast:'',lu:'',lp:'',lerr:'',newMed:'',newDose:''};
+  }
+  applyTheme(){
+    const d=!!this.state.dark;document.documentElement.classList.toggle('dark',d);
+    const m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#061820':'#EFF7FF');
+    const sb=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');if(sb)sb.setAttribute('content',d?'black-translucent':'default');
+  }
+  componentDidMount(){this.applyTheme();this.onResize=()=>this.setState({wide:window.innerWidth>=700});window.addEventListener('resize',this.onResize)}
+  componentWillUnmount(){window.removeEventListener('resize',this.onResize)}
+  componentDidUpdate(){this.applyTheme();const s=this.state;try{localStorage.setItem(KEY,JSON.stringify({authed:s.authed,name:s.name,entries:s.entries,meds:s.meds,dark:s.dark}))}catch(e){}}
+  flash(msg){clearTimeout(this.tt);this.setState({toast:msg});this.tt=setTimeout(()=>this.setState({toast:''}),2200)}
+  blank(type){const n=new Date();return{type:type||null,step:type?'fields':'type',date:ds(n),time:tms(n),zone:'',zoneOther:'',constant:false,duration:'',intensity:5,value:'',sys:'',dia:'',pulse:'',obs:'',med:'',dose:'',symptom:'',kind:'',amount:'Regular',err:'',editing:null}}
+  openNew(type){this.setState({form:this.blank(type)})}
+  openEdit(e){this.setState({form:Object.assign(this.blank(e.type),e,{step:'fields',editing:e.id,err:''})})}
+  setF(p){this.setState(s=>({form:Object.assign({},s.form,p,{err:''})}))}
+  saveForm(){
+    const f=this.state.form,t=f.type;let err='';
+    if(!f.date||!f.time)err='Indica fecha y hora.';
+    else if(t==='dolor'&&!f.zone)err='Selecciona la zona del dolor.';
+    else if(t==='dolor'&&f.zone==='Otro'&&!f.zoneOther.trim())err='Especifica la zona.';
+    else if(t==='lpm'&&!f.value)err='Ingresa el resultado.';
+    else if(t==='presion'&&(!f.sys||!f.dia))err='Ingresa sistólica y diastólica.';
+    else if(t==='medicamento'&&!f.med)err='Selecciona un medicamento.';
+    else if(t==='bano'&&!f.kind)err='Selecciona pipí o popó.';
+    if(err)return this.setState({form:Object.assign({},f,{err})});
+    const pick={dolor:['zone','zoneOther','constant','duration','intensity'],mareo:['duration','intensity'],lpm:['value','obs'],presion:['sys','dia','pulse','obs'],medicamento:['med','dose','symptom'],bano:['kind','amount','obs']}[t];
+    const rec={id:f.editing||('e'+Date.now()),type:t,date:f.date,time:f.time};
+    pick.forEach(k=>rec[k]=f[k]);
+    if(rec.constant)rec.duration='';
+    this.setState(s=>({form:null,entries:f.editing?s.entries.map(e=>e.id===f.editing?rec:e):[...s.entries,rec]}));
+    this.flash(f.editing?'Registro actualizado':'Registro guardado');
+  }
+  computeReport(){
+    const s=this.state,now=new Date();let from=null,to=ds(now);
+    if(s.range==='custom'){from=s.from||null;to=s.to||to}
+    else if(s.range!=='all'){const d=new Date();d.setDate(d.getDate()-(+s.range-1));from=ds(d)}
+    const list=s.entries.filter(e=>(!from||e.date>=from)&&e.date<=to).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+    const avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+    const avg1=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1):'0';
+    const sections=[];let total=0;
+    ORDER.filter(t=>s.rtypes.includes(t)).forEach(t=>{
+      const L=list.filter(e=>e.type===t);if(!L.length)return;total+=L.length;let st=[];
+      if(t==='presion'){const S=L.map(e=>+e.sys),D=L.map(e=>+e.dia),mx=L.reduce((a,b)=>+b.sys>+a.sys?b:a),mn=L.reduce((a,b)=>+b.sys<+a.sys?b:a);st=[['Tomas',L.length],['Promedio',avg(S)+'/'+avg(D)],['Más alta',mx.sys+'/'+mx.dia],['Más baja',mn.sys+'/'+mn.dia]];const P=L.filter(e=>e.pulse).map(e=>+e.pulse);if(P.length)st.push(['Pulso prom.',avg(P)+' lpm'])}
+      if(t==='lpm'){const V=L.map(e=>+e.value);st=[['Tomas',L.length],['Promedio',avg(V)+' lpm'],['Mínimo',Math.min(...V)+' lpm'],['Máximo',Math.max(...V)+' lpm']]}
+      if(t==='dolor'){const z={};L.forEach(e=>{const k=zoneName(e);z[k]=(z[k]||0)+1});st=[['Episodios',L.length],['Intensidad prom.',avg1(L.map(e=>+e.intensity))+'/10'],['Constantes',L.filter(e=>e.constant).length]];Object.entries(z).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>st.push([k,v+(v===1?' vez':' veces')]))}
+      if(t==='mareo'){const Dd=L.filter(e=>e.duration).map(e=>+e.duration);st=[['Episodios',L.length],['Duración prom.',avg(Dd)+' min'],['Intensidad prom.',avg1(L.map(e=>+e.intensity))+'/10']]}
+      if(t==='medicamento'){const m={};L.forEach(e=>m[e.med]=(m[e.med]||0)+1);st=[['Tomas',L.length]];Object.entries(m).forEach(([k,v])=>st.push([k,v+(v===1?' toma':' tomas')]))}
+      if(t==='bano'){const p=L.filter(e=>e.kind!=='popo').length;st=[['Pipí',p],['Popó',L.length-p]]}
+      sections.push({key:t,title:t==='presion'?'Presión arterial':TYPES[t].label,mask:mk(TYPES[t].icon),stats:st.map(([label,value])=>({label,value:String(value)})),
+        rows:L.slice().reverse().map(e=>{const x=summary(e);const head=(t==='dolor'||t==='bano')?x.title.split(' · ')[1]:t==='medicamento'?x.title:'';return{when:shortDate(e.date)+' · '+e.time,text:[x.badge,head,x.detail].filter(Boolean).join(' · ')}})});
+    });
+    const rangeLabel=from?longDate(from)+' – '+longDate(to):'Todo el historial';
+    return{sections,total,rangeLabel};
+  }
+  reportText(r){
+    let out='Reporte de salud — '+(this.state.name||'')+'\n'+r.rangeLabel+'\n';
+    r.sections.forEach(sec=>{out+='\n'+sec.title.toUpperCase()+'\n'+sec.stats.map(s=>s.label+': '+s.value).join(' · ')+'\n';sec.rows.forEach(rw=>out+='  '+rw.when+'  '+rw.text+'\n')});
+    return out;
+  }
+  printReport(r){
+    const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    const body=r.sections.map(sec=>`<h2>${esc(sec.title)}</h2><div class="st">${sec.stats.map(s=>`<div><small>${esc(s.label)}</small><b>${esc(s.value)}</b></div>`).join('')}</div><table>${sec.rows.map(rw=>`<tr><td class="w">${esc(rw.when)}</td><td>${esc(rw.text)}</td></tr>`).join('')}</table>`).join('');
+    const html=`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Reporte VitaLogs</title><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet"><style>body{font-family:'Plus Jakarta Sans',sans-serif;color:#0B2E3B;margin:32px;font-size:12pt}h1{margin:0;font-size:22pt;letter-spacing:-0.02em}h1 span{color:#16947D}h2{color:#0A5E80;font-size:14pt;margin:24px 0 8px;border-bottom:1px solid #CDECEF;padding-bottom:6px}.st{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}.st div{background:#EFF7FF;border-radius:10px;padding:6px 10px;display:flex;flex-direction:column}.st small{color:#557481}table{width:100%;border-collapse:collapse}td{padding:4px 6px;border-bottom:1px solid #E4F1F5;vertical-align:top}.w{width:120px;color:#557481;white-space:nowrap}p{margin:4px 0;color:#557481}</style></head><body><h1>Reporte de salud</h1><p><b style="color:#0B2E3B">${esc(this.state.name)}</b> · ${esc(r.rangeLabel)}</p><p>Generado el ${esc(longDate(ds(new Date())))} · VitaLogs</p>${body||'<p>No hay registros en este periodo.</p>'}<${SCR}>window.onload=()=>setTimeout(()=>window.print(),400)</${SCR}></body></html>`;
+    const w=window.open('','_blank');if(w){w.document.write(html);w.document.close()}else this.flash('Permite ventanas emergentes para exportar');
+  }
+  renderVals(){
+    const s=this.state,w=s.wide,f=s.form;
+    const chip=(label,on,pick)=>({label,on,pick,bg:on?'var(--primary)':'var(--surface)',fg:on?'var(--onprimary)':'var(--ink)',bd:on?'var(--primary)':'var(--line)',sbg:on?'var(--surface)':'transparent',sfg:on?'var(--ink)':'var(--muted)',ssh:on?'var(--shadow)':'none'});
+    const sorted=[...s.entries].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+    const row=(e,i)=>{const x=summary(e);return Object.assign({},x,{hasBadge:!!x.badge,time:e.time,mask:mk(TYPES[e.type].icon),sep:i?'1px solid var(--line)':'none',edit:()=>this.openEdit(e)})};
+    const today=ds(new Date());
+    const todayItems=sorted.filter(e=>e.date===today).map(row);
+    const groups=[];sorted.filter(e=>s.filter==='all'||e.type===s.filter).forEach(e=>{let g=groups[groups.length-1];if(!g||g.date!==e.date){g={date:e.date,label:dayLabel(e.date),raw:[]};groups.push(g)}g.raw.push(e)});
+    groups.forEach(g=>{g.items=g.raw.map(row);g.count=g.raw.length===1?'1 registro':g.raw.length+' registros'});
+    const tabDefs=[['hoy','Hoy','icons/home.svg'],['historial','Historial','icons/clock.svg'],['reportes','Reportes','icons/chart.svg'],['perfil','Perfil','icons/user.svg']];
+    const tabs=tabDefs.map(([k,label,ic])=>{const a=s.tab===k;return{label,mask:mk(ic),bg:a?'var(--surface)':'transparent',fg:a?'var(--ink)':'var(--muted)',tfg:a?'var(--accent)':'var(--muted)',go:()=>{this.setState({tab:k});window.scrollTo(0,0)}}});
+    const tiles=ORDER.map(t=>({label:TYPES[t].label,mask:mk(TYPES[t].icon),open:()=>f?this.setF({type:t,step:'fields'}):this.openNew(t)}));
+    const h=new Date().getHours();const first=(s.name||'').split(' ')[0];
+    const rep=s.tab==='reportes'?this.computeReport():{sections:[],total:0,rangeLabel:''};
+    const on={};['lu','lp','from','to','name','newMed','newDose'].forEach(k=>on[k]=e=>this.setState({[k]:e.target.value,lerr:''}));
+    const fo={};['date','time','zoneOther','duration','value','sys','dia','pulse','obs','dose','symptom'].forEach(k=>fo[k]=e=>this.setF({[k]:e.target.value}));
+    let fv={};
+    if(f){const t=f.type,fields=f.step==='fields'&&!!t;
+      fv={hasType:fields,mask:t?mk(TYPES[t].icon):'',heading:fields?(f.editing?'Editar ':'')+(t==='presion'?'Presión arterial':TYPES[t].label):'Nuevo registro',canChange:fields&&!f.editing,pickType:!fields,fields,
+        isDolor:fields&&t==='dolor',hasDuration:fields&&(t==='dolor'||t==='mareo'),isLpm:fields&&t==='lpm',isPresion:fields&&t==='presion',isMed:fields&&t==='medicamento',isBano:fields&&t==='bano',
+        hasObs:fields&&(t==='lpm'||t==='presion'||t==='bano'),hasPresets:t==='lpm'||t==='presion',obsPh:t==='bano'?'Color, dolor, condiciones (p. ej. mucho frío)…':'Otras notas…',
+        zoneIsOther:f.zone==='Otro',date:f.date,time:f.time,zoneOther:f.zoneOther,duration:f.constant?'':f.duration,constant:!!f.constant,durBg:f.constant?'var(--surface2)':'var(--surface)',durOpacity:f.constant?0.5:1,
+        intLabel:f.intensity+'/10 · '+intLabel(f.intensity),value:f.value,sys:f.sys,dia:f.dia,pulse:f.pulse,obs:f.obs,dose:f.dose,symptom:f.symptom,
+        hasErr:!!f.err,err:f.err,editing:!!f.editing,saveLabel:f.editing?'Guardar cambios':'Guardar registro'};}
+    const obsParts=f?(f.obs||'').split(',').map(x=>x.trim()).filter(Boolean):[];
+    const lastP=sorted.find(e=>e.type==='presion'),lastL=sorted.find(e=>e.type==='lpm');
+    const toggleTheme=()=>this.setState(st=>({dark:!st.dark}));
+    return{
+      notAuthed:!s.authed,authed:s.authed,lu:s.lu,lp:s.lp,lerr:s.lerr,hasLerr:!!s.lerr,on,fo,
+      toggleTheme,themeMask:mk(s.dark?'icons/sun.svg':'icons/moon.svg'),themeLabel:s.dark?'Modo claro':'Modo oscuro',
+      switchBg:s.dark?'var(--primary)':'var(--line)',switchJustify:s.dark?'flex-end':'flex-start',
+      login:e=>{e.preventDefault();if(!s.lu.trim()||!s.lp)return this.setState({lerr:'Ingresa usuario y contraseña.'});this.setState({authed:true,name:s.name||cap(s.lu.trim()),lp:'',lerr:'',tab:'hoy'})},
+      logout:()=>this.setState({authed:false,lu:'',lp:''}),
+      wide:w,narrow:!w,shellDir:w?'row':'column',contentPad:w?'44px 44px 64px':'12px 20px calc(120px + env(safe-area-inset-bottom))',
+      tabs,tabsL:tabs.slice(0,2),tabsR:tabs.slice(2),goPerfil:()=>this.setState({tab:'perfil'}),
+      name:s.name,initial:(s.name||'?').charAt(0).toUpperCase(),
+      isHoy:s.tab==='hoy',isHistorial:s.tab==='historial',isReportes:s.tab==='reportes',isPerfil:s.tab==='perfil',
+      todayLong:cap(new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})),
+      greeting:(h<12?'Buenos días':h<20?'Buenas tardes':'Buenas noches')+(first?', '+first:''),
+      heroBp:lastP?lastP.sys+'/'+lastP.dia:'—',heroBpWhen:rel(lastP),heroHr:lastL?lastL.value:'—',heroHrWhen:rel(lastL),
+      newPresion:()=>this.openNew('presion'),newLpm:()=>this.openNew('lpm'),
+      typeTiles:tiles,formTiles:tiles,todayItems,todayEmpty:!todayItems.length,todayCount:todayItems.length===1?'1 registro':todayItems.length+' registros',
+      filterChips:[chip('Todos',s.filter==='all',()=>this.setState({filter:'all'}))].concat(ORDER.map(t=>chip(TYPES[t].label,s.filter===t,()=>this.setState({filter:t})))),
+      groups,histEmpty:!groups.length,
+      rangeChips:[['7','7 días'],['30','30 días'],['90','90 días'],['all','Todo'],['custom','Personalizado']].map(([k,l])=>chip(l,s.range===k,()=>this.setState({range:k}))),
+      isCustom:s.range==='custom',from:s.from,to:s.to,
+      rtypeChips:ORDER.map(t=>chip(TYPES[t].label,s.rtypes.includes(t),()=>this.setState(st=>({rtypes:st.rtypes.includes(t)?st.rtypes.filter(x=>x!==t):[...st.rtypes,t]})))),
+      sections:rep.sections,reportEmpty:!rep.sections.length,rangeLabel:rep.rangeLabel,reportCount:rep.total===1?'1 registro':rep.total+' registros',generated:longDate(today),
+      printReport:()=>this.printReport(this.computeReport()),
+      copyReport:()=>{const t=this.reportText(this.computeReport());(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>this.flash('Resumen copiado'),()=>this.flash('No se pudo copiar'))},
+      medRows:s.meds.map((m,i)=>({name:m.name,dose:m.dose,remove:()=>this.setState(st=>({meds:st.meds.filter((_,j)=>j!==i)}))})),
+      addMed:e=>{e.preventDefault();if(!s.newMed.trim())return;this.setState(st=>({meds:[...st.meds,{name:st.newMed.trim(),dose:st.newDose.trim()}],newMed:'',newDose:''}))},
+      entryCount:s.entries.length+' registros',
+      backup:()=>{const b=new Blob([JSON.stringify({app:'VitaLogs',exported:new Date().toISOString(),name:s.name,entries:s.entries,meds:s.meds},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='vitalogs-respaldo-'+today+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)},
+      restore:e=>{const file=e.target.files&&e.target.files[0];if(!file)return;const rd=new FileReader();rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!Array.isArray(d.entries))throw 0;this.setState({entries:d.entries,meds:d.meds||s.meds,name:d.name||s.name});this.flash('Respaldo restaurado')}catch(x){this.flash('Archivo no válido')}};rd.readAsText(file);e.target.value=''},
+      openNewBlank:()=>this.openNew(null),formOpen:!!f,f:fv,
+      closeForm:()=>this.setState({form:null}),stop:e=>e.stopPropagation(),changeType:()=>this.setF({step:'type'}),
+      overlayAlign:w?'center':'flex-end',overlayPad:w?'24px':'0',panelMaxH:w?'90vh':'94vh',panelRadius:w?'28px':'28px 28px 0 0',
+      zoneChips:ZONES.map(z=>chip(z,f&&f.zone===z,()=>this.setF({zone:z}))),
+      intChips:[1,2,3,4,5,6,7,8,9,10].map(n=>chip(String(n),f&&+f.intensity===n,()=>this.setF({intensity:n}))),
+      constChip:chip('Constante',f&&f.constant,null),toggleConstant:()=>this.setF({constant:!f.constant}),
+      medChips:s.meds.map(m=>chip(m.name,f&&f.med===m.name,()=>this.setF({med:m.name,dose:m.dose}))),noMeds:!s.meds.length,
+      kindChips:[['pipi','Pipí'],['popo','Popó']].map(([k,l])=>chip(l,f&&f.kind===k,()=>this.setF({kind:k}))),
+      amountChips:AMOUNTS.map(a=>chip(a,f&&f.amount===a,()=>this.setF({amount:a}))),
+      obsChips:OBS.map(o=>chip(o,obsParts.includes(o),()=>{const has=obsParts.includes(o);this.setF({obs:(has?obsParts.filter(x=>x!==o):[...obsParts,o]).join(', ')})})),
+      saveForm:()=>this.saveForm(),
+      deleteEntry:()=>{const id=f.editing;this.setState(st=>({form:null,entries:st.entries.filter(e=>e.id!==id)}));this.flash('Registro eliminado')},
+      hasToast:!!s.toast,toast:s.toast,toastBottom:w?'32px':'calc(96px + env(safe-area-inset-bottom))'
+    };
+  }
+}
+</script>
+</body>
+</html>
