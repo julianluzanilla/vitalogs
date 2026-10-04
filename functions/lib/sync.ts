@@ -27,6 +27,7 @@ interface MedRow {
   id: string;
   name: string;
   dose: string;
+  purpose: string;
   updated_at: number;
   deleted: number;
   server_seq: number;
@@ -91,14 +92,14 @@ export async function sync(db: D1Database, userId: string, body: SyncRequest): P
       stmts.push(
         db
           .prepare(
-            `INSERT INTO meds (user_id, id, name, dose, updated_at, deleted, server_seq)
-             VALUES (?, ?, ?, ?, ?, ?, ${seqExpr})
+            `INSERT INTO meds (user_id, id, name, dose, purpose, updated_at, deleted, server_seq)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ${seqExpr})
              ON CONFLICT(user_id, id) DO UPDATE SET
-               name = excluded.name, dose = excluded.dose, updated_at = excluded.updated_at,
+               name = excluded.name, dose = excluded.dose, purpose = excluded.purpose, updated_at = excluded.updated_at,
                deleted = excluded.deleted, server_seq = excluded.server_seq
              WHERE excluded.updated_at >= meds.updated_at`,
           )
-          .bind(userId, m.id, m.name, m.dose, m.updatedAt, m.deleted ? 1 : 0, userId, n - 1 - i++),
+          .bind(userId, m.id, m.name, m.dose, m.purpose || '', m.updatedAt, m.deleted ? 1 : 0, userId, n - 1 - i++),
       );
     }
     if (profile) {
@@ -124,7 +125,7 @@ export async function sync(db: D1Database, userId: string, body: SyncRequest): P
       .prepare('SELECT id, type, date, time, data, updated_at, deleted, server_seq FROM entries WHERE user_id = ? AND server_seq > ? ORDER BY server_seq LIMIT ?')
       .bind(userId, cursor, PAGE + 1),
     db
-      .prepare('SELECT id, name, dose, updated_at, deleted, server_seq FROM meds WHERE user_id = ? AND server_seq > ? ORDER BY server_seq LIMIT ?')
+      .prepare('SELECT id, name, dose, purpose, updated_at, deleted, server_seq FROM meds WHERE user_id = ? AND server_seq > ? ORDER BY server_seq LIMIT ?')
       .bind(userId, cursor, PAGE + 1),
     db.prepare('SELECT report_name, updated_at, server_seq FROM profiles WHERE user_id = ? AND server_seq > ?').bind(userId, cursor),
   ]);
@@ -163,7 +164,7 @@ export async function sync(db: D1Database, userId: string, body: SyncRequest): P
           deleted: r.deleted ? 1 : 0,
         }) as Entry,
     ),
-    meds: medRows.map((r) => ({ id: r.id, name: r.name, dose: r.dose, updatedAt: r.updated_at, deleted: r.deleted ? 1 : 0 })),
+    meds: medRows.map((r) => ({ id: r.id, name: r.name, dose: r.dose, purpose: r.purpose, updatedAt: r.updated_at, deleted: r.deleted ? 1 : 0 })),
     profile: profRow && profRow.server_seq <= next ? { reportName: profRow.report_name, updatedAt: profRow.updated_at } : null,
   };
 }

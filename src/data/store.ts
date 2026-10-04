@@ -44,11 +44,22 @@ export async function restoreEntry(id: string) {
   scheduleSync();
 }
 
-export async function addMed(name: string, dose: string) {
-  const m: Med = { id: newId(), name: name.trim(), dose: dose.trim(), updatedAt: now(), deleted: 0 };
+export async function addMed(name: string, dose: string, purpose = '') {
+  const m: Med = { id: newId(), name: name.trim(), dose: dose.trim(), purpose: purpose.trim(), updatedAt: now(), deleted: 0 };
   await db.transaction('rw', [db.meds, db.outbox], async () => {
     await db.meds.put(m);
     await db.outbox.put({ key: `med:${m.id}`, kind: 'med', id: m.id, updatedAt: m.updatedAt });
+  });
+  scheduleSync();
+}
+
+export async function updateMed(id: string, name: string, dose: string, purpose: string) {
+  await db.transaction('rw', [db.meds, db.outbox], async () => {
+    const m = await db.meds.get(id);
+    if (!m) return;
+    const rec: Med = { ...m, name: name.trim(), dose: dose.trim(), purpose: purpose.trim(), updatedAt: now(), deleted: 0 };
+    await db.meds.put(rec);
+    await db.outbox.put({ key: `med:${id}`, kind: 'med', id, updatedAt: rec.updatedAt });
   });
   scheduleSync();
 }
@@ -108,7 +119,7 @@ export async function restoreBackup(raw: unknown): Promise<number> {
   const meds: Med[] = [];
   for (const r of data.meds || []) {
     const raw = r as Record<string, unknown>;
-    const m = sanitizeMed({ id: raw.id || newId(), name: raw.name, dose: raw.dose || '', updatedAt: t });
+    const m = sanitizeMed({ id: raw.id || newId(), name: raw.name, dose: raw.dose || '', purpose: raw.purpose || '', updatedAt: t });
     if (!m || m.deleted) continue;
     if (existingMeds.some((x) => !x.deleted && x.name === m.name && x.dose === m.dose)) continue;
     meds.push({ ...m, updatedAt: now() });
@@ -140,7 +151,7 @@ function normalizeLegacy(r: Record<string, unknown>, t: number): Record<string, 
   if (typeof out.id !== 'string' || !out.id) out.id = newId();
   for (const k of ['value', 'sys', 'dia', 'intensity']) if (k in out) num(k, false);
   for (const k of ['duration', 'pulse']) if (k in out) num(k, true);
-  for (const k of ['obs', 'zoneOther', 'dose', 'symptom']) if (out[k] === '') delete out[k];
+  for (const k of ['obs', 'zoneOther', 'dose', 'purpose', 'symptom']) if (out[k] === '') delete out[k];
   if (out.type === 'dolor') out.constant = !!out.constant;
   return out;
 }

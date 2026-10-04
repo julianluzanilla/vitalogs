@@ -22,15 +22,33 @@ export const OBS_PRESETS = [
   'Después de ejercicio',
   'Antes de dormir',
 ];
+/** Sugerencias para "¿Para qué es?" de un medicamento. */
+export const MED_PURPOSES = [
+  'Control de hipertensión',
+  'Dolor',
+  'Desinflamatorio',
+  'Antidepresivo',
+  'Ansiolítico',
+  'TDAH',
+  'Conciliar el sueño',
+  'Mareo / vértigo',
+  'Protector gástrico',
+  'Colesterol',
+  'Diabetes',
+  'Alergia',
+  'Antibiótico',
+  'Vitamina / suplemento',
+];
 export const AMOUNTS = ['Muy poco', 'Poco', 'Regular', 'Mucho'] as const;
 
 export type Amount = (typeof AMOUNTS)[number];
 
-export interface DolorData { zone: string; zoneOther?: string; constant: boolean; duration?: number | null; intensity: number }
+/** `zoneOther` es heredado (versiones anteriores lo usaban solo para la zona "Otro"); ahora el detalle va en `obs`. */
+export interface DolorData { zone: string; zoneOther?: string; obs?: string; constant: boolean; duration?: number | null; intensity: number }
 export interface MareoData { duration?: number | null; intensity: number }
 export interface LpmData { value: number; obs?: string }
 export interface PresionData { sys: number; dia: number; pulse?: number | null; obs?: string }
-export interface MedicamentoData { med: string; dose?: string; symptom?: string }
+export interface MedicamentoData { med: string; dose?: string; purpose?: string; symptom?: string }
 export interface BanoData { kind: 'pipi' | 'popo'; amount: Amount; obs?: string }
 
 interface Base<T extends EntryType> {
@@ -55,6 +73,8 @@ export interface Med {
   id: string;
   name: string;
   dose: string;
+  /** Para qué es el medicamento (p. ej. "Control de hipertensión"). */
+  purpose?: string;
   updatedAt: number;
   deleted?: 0 | 1;
 }
@@ -91,11 +111,11 @@ export const SYNC_BATCH = 40;
 
 /** Campos propios de cada tipo (lo que va en la columna `data`). */
 export const DATA_FIELDS: Record<EntryType, string[]> = {
-  dolor: ['zone', 'zoneOther', 'constant', 'duration', 'intensity'],
+  dolor: ['zone', 'zoneOther', 'obs', 'constant', 'duration', 'intensity'],
   mareo: ['duration', 'intensity'],
   lpm: ['value', 'obs'],
   presion: ['sys', 'dia', 'pulse', 'obs'],
-  medicamento: ['med', 'dose', 'symptom'],
+  medicamento: ['med', 'dose', 'purpose', 'symptom'],
   bano: ['kind', 'amount', 'obs'],
 };
 
@@ -129,7 +149,7 @@ export function sanitizeEntry(raw: unknown): Entry | null {
   let ok = false;
   switch (type) {
     case 'dolor':
-      ok = str(r.zone, 80) && optStr(r.zoneOther, 120) && typeof r.constant === 'boolean' && optNum(r.duration, 0, 100000) && isNum(r.intensity, 1, 10);
+      ok = str(r.zone, 80) && optStr(r.zoneOther, 120) && optStr(r.obs, 1000) && typeof r.constant === 'boolean' && optNum(r.duration, 0, 100000) && isNum(r.intensity, 1, 10);
       break;
     case 'mareo':
       ok = optNum(r.duration, 0, 100000) && isNum(r.intensity, 1, 10);
@@ -141,7 +161,7 @@ export function sanitizeEntry(raw: unknown): Entry | null {
       ok = isNum(r.sys, 1, 400) && isNum(r.dia, 1, 400) && optNum(r.pulse, 1, 400) && optStr(r.obs, 1000);
       break;
     case 'medicamento':
-      ok = str(r.med, 120) && optStr(r.dose, 120) && optStr(r.symptom, 300);
+      ok = str(r.med, 120) && optStr(r.dose, 120) && optStr(r.purpose, 120) && optStr(r.symptom, 300);
       break;
     case 'bano':
       ok = (r.kind === 'pipi' || r.kind === 'popo') && (AMOUNTS as readonly string[]).includes(r.amount as string) && optStr(r.obs, 1000);
@@ -159,8 +179,8 @@ export function sanitizeMed(raw: unknown): Med | null {
   if (!str(r.id, 64) || !isNum(r.updatedAt, 0, 1e14)) return null;
   const deleted = r.deleted ? 1 : 0;
   if (!deleted && !str(r.name, 120)) return null;
-  if (!optStr(r.dose, 120)) return null;
-  return { id: r.id as string, name: (r.name as string) || '', dose: (r.dose as string) || '', updatedAt: r.updatedAt as number, deleted };
+  if (!optStr(r.dose, 120) || !optStr(r.purpose, 120)) return null;
+  return { id: r.id as string, name: (r.name as string) || '', dose: (r.dose as string) || '', purpose: (r.purpose as string) || '', updatedAt: r.updatedAt as number, deleted };
 }
 
 /** Separa los campos propios del tipo para guardarlos como JSON. */

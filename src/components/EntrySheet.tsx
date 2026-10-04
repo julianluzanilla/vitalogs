@@ -8,6 +8,7 @@ import { intLabel } from '../lib/format';
 import { ConfirmDialog } from './Dialog';
 import { Icon, IconChip } from './Icon';
 import { Sheet } from './Sheet';
+import { MedPurposeList } from './MedPurposeList';
 import { Chip, TypeTiles } from './TypeTiles';
 
 export function EntrySheet({ initial, onClose }: { initial: FormState; onClose: () => void }) {
@@ -81,10 +82,21 @@ export function EntrySheet({ initial, onClose }: { initial: FormState; onClose: 
                       </Chip>
                     ))}
                   </div>
-                  {f.zone === 'Otro' && (
-                    <input className="input" value={f.zoneOther} placeholder="Especifica la zona" maxLength={120} onChange={(e) => set({ zoneOther: e.target.value })} />
-                  )}
                 </div>
+              )}
+
+              {fields && t === 'dolor' && (
+                <label className="field">
+                  <span className="label">{f.zone === 'Otro' ? 'Observaciones · especifica la zona' : 'Observaciones · ¿quieres ser más específico?'}</span>
+                  <textarea
+                    className="textarea"
+                    rows={2}
+                    maxLength={1000}
+                    value={f.obs}
+                    placeholder={f.zone === 'Otro' ? 'p. ej. rodilla derecha, dolor punzante…' : 'p. ej. espalda baja, lado derecho, dolor punzante, al moverme…'}
+                    onChange={(e) => set({ obs: e.target.value })}
+                  />
+                </label>
               )}
 
               {fields && (t === 'dolor' || t === 'mareo') && (
@@ -168,7 +180,7 @@ export function EntrySheet({ initial, onClose }: { initial: FormState; onClose: 
                     <span className="label">Medicamento</span>
                     <div className="chips">
                       {meds.map((m) => (
-                        <Chip key={m.id} size="lg" on={f.med === m.name} onClick={() => set({ med: m.name, dose: m.dose })}>
+                        <Chip key={m.id} size="lg" on={f.med === m.name} onClick={() => set({ med: m.name, dose: m.dose, purpose: m.purpose || '' })}>
                           {m.name}
                         </Chip>
                       ))}
@@ -184,6 +196,18 @@ export function EntrySheet({ initial, onClose }: { initial: FormState; onClose: 
                   <label className="field">
                     <span className="label">Dosis</span>
                     <input className="input" value={f.dose} placeholder="p. ej. 500 mg" maxLength={120} onChange={(e) => set({ dose: e.target.value })} />
+                  </label>
+                  <label className="field">
+                    <span className="label">¿Para qué es? · opcional</span>
+                    <input
+                      className="input"
+                      value={f.purpose}
+                      list="med-purposes"
+                      placeholder="p. ej. control de hipertensión"
+                      maxLength={120}
+                      onChange={(e) => set({ purpose: e.target.value })}
+                    />
+                    <MedPurposeList />
                   </label>
                   <label className="field">
                     <span className="label">Síntoma presentado · opcional</span>

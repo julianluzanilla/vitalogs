@@ -45,8 +45,9 @@ export function relTime(e: Entry | undefined, now = new Date()): string {
 export const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 export const countLabel = (n: number) => plural(n, 'registro', 'registros');
 
-export function zoneName(e: { zone: string; zoneOther?: string }): string {
-  return e.zone === 'Otro' ? e.zoneOther || 'Otro' : e.zone;
+/** Zona del dolor. Para "Otro" se usa lo que se especificó (campo heredado zoneOther u Observaciones). */
+export function zoneName(e: { zone: string; zoneOther?: string; obs?: string }): string {
+  return e.zone === 'Otro' ? e.zoneOther || e.obs || 'Otro' : e.zone;
 }
 
 export interface Summary {
@@ -60,7 +61,14 @@ export function summary(e: Entry): Summary {
     case 'dolor':
       return {
         title: `Dolor · ${zoneName(e)}`,
-        detail: `${e.constant ? 'Constante' : e.duration ? `${e.duration} min` : 'Duración no indicada'} · ${intLabel(e.intensity)}`,
+        detail: [
+          // En "Otro" las observaciones ya son el título.
+          e.zone === 'Otro' && !e.zoneOther ? '' : e.obs,
+          e.constant ? 'Constante' : e.duration ? `${e.duration} min` : 'Duración no indicada',
+          intLabel(e.intensity),
+        ]
+          .filter(Boolean)
+          .join(' · '),
         badge: `${e.intensity}/10`,
       };
     case 'mareo':
@@ -78,7 +86,7 @@ export function summary(e: Entry): Summary {
         badge: `${e.sys}/${e.dia}`,
       };
     case 'medicamento':
-      return { title: e.med, detail: [e.dose, e.symptom ? `Por: ${e.symptom}` : ''].filter(Boolean).join(' · ') || '—', badge: '' };
+      return { title: e.med, detail: [e.dose, e.purpose, e.symptom ? `Por: ${e.symptom}` : ''].filter(Boolean).join(' · ') || '—', badge: '' };
     case 'bano':
       return { title: `Baño · ${e.kind === 'popo' ? 'Popó' : 'Pipí'}`, detail: [e.amount, e.obs].filter(Boolean).join(' · '), badge: '' };
   }

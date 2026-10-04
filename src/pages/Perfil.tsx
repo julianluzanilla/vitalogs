@@ -4,7 +4,8 @@ import { ExportSheet } from '../components/ExportSheet';
 import { Icon, IconChip } from '../components/Icon';
 import { LogoutDialog } from '../components/LogoutDialog';
 import { Sheet } from '../components/Sheet';
-import { addMed, buildBackup, removeMed, restoreBackup, setReportName } from '../data/store';
+import { MedPurposeList } from '../components/MedPurposeList';
+import { addMed, buildBackup, removeMed, restoreBackup, setReportName, updateMed } from '../data/store';
 import { useEntries, useMeds } from '../hooks/useData';
 import { useMe, useSession } from '../hooks/useSession';
 import { useTheme } from '../hooks/useTheme';
@@ -17,13 +18,10 @@ export function Perfil() {
   const me = useMe();
   const name = useDisplayName();
   const entries = useEntries();
-  const meds = useMeds();
   const { dark, toggle } = useTheme();
   const { changePassword } = useSession();
   const toast = useToast();
   const [draft, setDraft] = useState(name);
-  const [newMed, setNewMed] = useState('');
-  const [newDose, setNewDose] = useState('');
   const [backup, setBackup] = useState<ExportFile | null>(null);
   const [pwOpen, setPwOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
@@ -40,14 +38,6 @@ export function Perfil() {
     const v = draft.trim();
     if (v && v !== name) void setReportName(v);
     else setDraft(name);
-  };
-
-  const submitMed = (e: FormEvent) => {
-    e.preventDefault();
-    if (!newMed.trim()) return;
-    void addMed(newMed, newDose);
-    setNewMed('');
-    setNewDose('');
   };
 
   const makeBackup = async () => {
@@ -126,31 +116,7 @@ export function Perfil() {
           </section>
         </div>
 
-        <section className="card meds">
-          <div className="report-sec-head">
-            <IconChip name="medicamento" size="sm" />
-            <h2 className="section-title">Mis medicamentos</h2>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {!meds.length && <div className="hint">Agrega los medicamentos que tomas para elegirlos rápido al registrar.</div>}
-            {meds.map((m) => (
-              <div className="med-row" key={m.id}>
-                <span className="n">{m.name}</span>
-                <span className="d">{m.dose}</span>
-                <button className="icon-btn ghost" title="Eliminar" aria-label={`Eliminar ${m.name}`} onClick={() => void removeMed(m.id)}>
-                  <Icon name="trash" size={17} />
-                </button>
-              </div>
-            ))}
-          </div>
-          <form className="med-form" onSubmit={submitMed}>
-            <input className="input alt" value={newMed} onChange={(e) => setNewMed(e.target.value)} placeholder="Nombre" maxLength={120} aria-label="Nombre del medicamento" />
-            <input className="input alt" value={newDose} onChange={(e) => setNewDose(e.target.value)} placeholder="Dosis" maxLength={120} aria-label="Dosis" />
-            <button type="submit" className="btn btn-primary" title="Agregar" aria-label="Agregar medicamento">
-              <Icon name="plus" size={18} />
-            </button>
-          </form>
-        </section>
+        <MedsCard />
       </div>
 
       {backup && <ExportSheet file={backup} title="Respaldo listo" onClose={() => setBackup(null)} />}
@@ -183,5 +149,91 @@ export function Perfil() {
         </Sheet>
       )}
     </>
+  );
+}
+
+/** "Mis medicamentos": lista para elegir rápido al registrar. Tocar uno lo carga para editarlo. */
+function MedsCard() {
+  const meds = useMeds();
+  const toast = useToast();
+  const [editId, setEditId] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [dose, setDose] = useState('');
+  const [purpose, setPurpose] = useState('');
+  const nameInput = useRef<HTMLInputElement>(null);
+
+  const reset = () => {
+    setEditId(null);
+    setName('');
+    setDose('');
+    setPurpose('');
+  };
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    if (editId) {
+      void updateMed(editId, name, dose, purpose);
+      toast('Medicamento actualizado');
+    } else void addMed(name, dose, purpose);
+    reset();
+  };
+
+  return (
+    <section className="card meds">
+      <div className="report-sec-head">
+        <IconChip name="medicamento" size="sm" />
+        <h2 className="section-title">Mis medicamentos</h2>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {!meds.length && <div className="hint">Agrega los medicamentos que tomas para elegirlos rápido al registrar.</div>}
+        {meds.map((m) => (
+          <div className={`med-row${editId === m.id ? ' editing' : ''}`} key={m.id}>
+            <button
+              type="button"
+              className="med-info"
+              title="Editar"
+              onClick={() => {
+                setEditId(m.id);
+                setName(m.name);
+                setDose(m.dose);
+                setPurpose(m.purpose || '');
+                nameInput.current?.focus();
+              }}
+            >
+              <span className="n">{m.name}</span>
+              {m.purpose && <span className="p">{m.purpose}</span>}
+            </button>
+            <span className="d">{m.dose}</span>
+            <button className="icon-btn ghost" title="Eliminar" aria-label={`Eliminar ${m.name}`} onClick={() => (void removeMed(m.id), editId === m.id && reset())}>
+              <Icon name="trash" size={17} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <form className="med-form" onSubmit={submit}>
+        <input ref={nameInput} className="input alt" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" maxLength={120} aria-label="Nombre del medicamento" />
+        <input className="input alt" value={dose} onChange={(e) => setDose(e.target.value)} placeholder="Dosis" maxLength={120} aria-label="Dosis" />
+        <input
+          className="input alt purpose"
+          value={purpose}
+          list="med-purposes"
+          onChange={(e) => setPurpose(e.target.value)}
+          placeholder="¿Para qué es? (p. ej. hipertensión, TDAH, dormir)"
+          maxLength={120}
+          aria-label="Para qué es el medicamento"
+        />
+        <MedPurposeList />
+        <button type="submit" className="btn btn-primary submit" disabled={!name.trim()}>
+          {!editId && <Icon name="plus" size={18} />}
+          {editId ? 'Guardar cambios' : 'Agregar medicamento'}
+        </button>
+        {editId && (
+          <button type="button" className="link-btn cancel" onClick={reset}>
+            Cancelar edición
+          </button>
+        )}
+      </form>
+    </section>
   );
 }

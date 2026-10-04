@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeEntry, type Entry } from '../shared/model';
+import { sanitizeEntry, sanitizeMed, type Entry } from '../shared/model';
+import { COLUMNS } from '../src/lib/export/columns';
 import { hashPassword, tempPassword, verifyPassword } from '../functions/lib/crypto';
 import { blankForm, entryFromForm, formFromEntry, validateForm } from '../src/lib/form';
 import { computeReport, reportFileBase, reportText } from '../src/lib/report';
@@ -82,7 +83,8 @@ describe('computeReport', () => {
 describe('formulario', () => {
   it('valida con los mensajes del diseño', () => {
     expect(validateForm(blankForm('dolor', NOW))).toBe('Selecciona la zona del dolor.');
-    expect(validateForm({ ...blankForm('dolor', NOW), zone: 'Otro' })).toBe('Especifica la zona.');
+    expect(validateForm({ ...blankForm('dolor', NOW), zone: 'Otro' })).toBe('Especifica la zona en Observaciones.');
+    expect(validateForm({ ...blankForm('dolor', NOW), zone: 'Otro', obs: 'Rodilla' })).toBe('');
     expect(validateForm(blankForm('lpm', NOW))).toBe('Ingresa el resultado.');
     expect(validateForm({ ...blankForm('presion', NOW), sys: '120' })).toBe('Ingresa sistólica y diastólica.');
     expect(validateForm(blankForm('medicamento', NOW))).toBe('Selecciona un medicamento.');
@@ -98,6 +100,35 @@ describe('formulario', () => {
     expect(sanitizeEntry(e)).not.toBeNull();
     expect(formFromEntry(e).zone).toBe('Cuello');
     expect(summary(e).detail).toBe('Constante · Fuerte');
+  });
+});
+
+describe('campos nuevos', () => {
+  it('dolor: observaciones en cualquier zona', () => {
+    const e = entryFromForm({ ...blankForm('dolor', NOW), zone: 'Espalda', obs: 'Espalda baja, punzante', duration: '10' }, 'd1', 1);
+    expect(sanitizeEntry(e)).not.toBeNull();
+    expect(summary(e)).toMatchObject({ title: 'Dolor · Espalda', detail: 'Espalda baja, punzante · 10 min · Moderado' });
+    expect(COLUMNS.dolor.find((c) => c.header === 'Observaciones')!.value(e)).toBe('Espalda baja, punzante');
+  });
+  it('dolor "Otro": las observaciones son la zona', () => {
+    const e = entryFromForm({ ...blankForm('dolor', NOW), zone: 'Otro', obs: 'Rodilla derecha' }, 'd2', 1);
+    expect(summary(e).title).toBe('Dolor · Rodilla derecha');
+    expect(summary(e).detail).toBe('Duración no indicada · Moderado');
+  });
+  it('dolor heredado con zoneOther se edita como observaciones', () => {
+    const old = mk({ type: 'dolor', date: '2026-10-01', time: '10:00', zone: 'Otro', zoneOther: 'Rodilla', constant: false, intensity: 4 });
+    expect(summary(old).title).toBe('Dolor · Rodilla');
+    const f = formFromEntry(old);
+    expect(f.obs).toBe('Rodilla');
+    const saved = entryFromForm(f, old.id, 2);
+    expect(summary(saved).title).toBe('Dolor · Rodilla');
+  });
+  it('medicamento: para qué es', () => {
+    const e = entryFromForm({ ...blankForm('medicamento', NOW), med: 'Losartán', dose: '50 mg', purpose: 'Control de hipertensión' }, 'm1', 1);
+    expect(sanitizeEntry(e)).toMatchObject({ purpose: 'Control de hipertensión' });
+    expect(summary(e).detail).toBe('50 mg · Control de hipertensión');
+    expect(formFromEntry(e).purpose).toBe('Control de hipertensión');
+    expect(sanitizeMed({ id: 'x', name: 'Losartán', dose: '50 mg', purpose: 'Hipertensión', updatedAt: 1 })?.purpose).toBe('Hipertensión');
   });
 });
 

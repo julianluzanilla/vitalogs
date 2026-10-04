@@ -9,7 +9,6 @@ export interface FormState {
   date: string;
   time: string;
   zone: string;
-  zoneOther: string;
   constant: boolean;
   duration: string;
   intensity: number;
@@ -20,6 +19,7 @@ export interface FormState {
   obs: string;
   med: string;
   dose: string;
+  purpose: string;
   symptom: string;
   kind: '' | 'pipi' | 'popo';
   amount: Amount;
@@ -34,7 +34,6 @@ export function blankForm(type: EntryType | null, now = new Date()): FormState {
     date: ds(now),
     time: tms(now),
     zone: '',
-    zoneOther: '',
     constant: false,
     duration: '',
     intensity: 5,
@@ -45,6 +44,7 @@ export function blankForm(type: EntryType | null, now = new Date()): FormState {
     obs: '',
     med: '',
     dose: '',
+    purpose: '',
     symptom: '',
     kind: '',
     amount: 'Regular',
@@ -61,7 +61,8 @@ export function formFromEntry(e: Entry): FormState {
   f.time = e.time;
   switch (e.type) {
     case 'dolor':
-      Object.assign(f, { zone: e.zone, zoneOther: e.zoneOther || '', constant: !!e.constant, duration: s(e.duration), intensity: e.intensity });
+      // Registros antiguos guardaban el detalle de "Otro" en zoneOther.
+      Object.assign(f, { zone: e.zone, obs: [e.zoneOther, e.obs].filter(Boolean).join(', '), constant: !!e.constant, duration: s(e.duration), intensity: e.intensity });
       break;
     case 'mareo':
       Object.assign(f, { duration: s(e.duration), intensity: e.intensity });
@@ -73,7 +74,7 @@ export function formFromEntry(e: Entry): FormState {
       Object.assign(f, { sys: s(e.sys), dia: s(e.dia), pulse: s(e.pulse), obs: e.obs || '' });
       break;
     case 'medicamento':
-      Object.assign(f, { med: e.med, dose: e.dose || '', symptom: e.symptom || '' });
+      Object.assign(f, { med: e.med, dose: e.dose || '', purpose: e.purpose || '', symptom: e.symptom || '' });
       break;
     case 'bano':
       Object.assign(f, { kind: e.kind, amount: e.amount, obs: e.obs || '' });
@@ -96,7 +97,7 @@ export function validateForm(f: FormState): string {
   const t = f.type;
   if (!f.date || !f.time) return 'Indica fecha y hora.';
   if (t === 'dolor' && !f.zone) return 'Selecciona la zona del dolor.';
-  if (t === 'dolor' && f.zone === 'Otro' && !f.zoneOther.trim()) return 'Especifica la zona.';
+  if (t === 'dolor' && f.zone === 'Otro' && !f.obs.trim()) return 'Especifica la zona en Observaciones.';
   if (t === 'lpm' && !posInt(f.value)) return 'Ingresa el resultado.';
   if (t === 'presion' && (!posInt(f.sys) || !posInt(f.dia))) return 'Ingresa sistólica y diastólica.';
   if (t === 'medicamento' && !f.med) return 'Selecciona un medicamento.';
@@ -114,7 +115,7 @@ export function entryFromForm(f: FormState, id: string, updatedAt: number): Entr
         ...base,
         type: 'dolor',
         zone: f.zone,
-        zoneOther: f.zone === 'Otro' ? f.zoneOther.trim() : undefined,
+        obs,
         constant: f.constant,
         duration: f.constant ? null : optInt(f.duration),
         intensity: f.intensity,
@@ -126,7 +127,7 @@ export function entryFromForm(f: FormState, id: string, updatedAt: number): Entr
     case 'presion':
       return { ...base, type: 'presion', sys: posInt(f.sys)!, dia: posInt(f.dia)!, pulse: posInt(f.pulse), obs };
     case 'medicamento':
-      return { ...base, type: 'medicamento', med: f.med, dose: f.dose.trim() || undefined, symptom: f.symptom.trim() || undefined };
+      return { ...base, type: 'medicamento', med: f.med, dose: f.dose.trim() || undefined, purpose: f.purpose.trim() || undefined, symptom: f.symptom.trim() || undefined };
     case 'bano':
       return { ...base, type: 'bano', kind: f.kind as 'pipi' | 'popo', amount: f.amount, obs };
     default:

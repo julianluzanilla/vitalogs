@@ -38,6 +38,8 @@ export const COLUMNS: Record<EntryType, Column[]> = {
     { header: 'Duración (min)', value: (e) => (e.type === 'dolor' ? (e.constant ? 'Constante' : (e.duration ?? null)) : null), width: 14 },
     { header: 'Intensidad (1-10)', value: (e) => (e.type === 'dolor' ? e.intensity : null), width: 16, numeric: true },
     { header: 'Nivel', value: (e) => (e.type === 'dolor' ? intLabel(e.intensity) : null), width: 11 },
+    // En "Otro" las observaciones ya aparecen como zona.
+    { header: 'Observaciones', value: (e) => (e.type === 'dolor' && !(e.zone === 'Otro' && !e.zoneOther) ? e.obs || null : null), width: 36 },
   ],
   mareo: [
     date,
@@ -51,6 +53,7 @@ export const COLUMNS: Record<EntryType, Column[]> = {
     time,
     { header: 'Medicamento', value: (e) => (e.type === 'medicamento' ? e.med : null), width: 20 },
     { header: 'Dosis', value: (e) => (e.type === 'medicamento' ? e.dose || null : null), width: 14 },
+    { header: 'Para qué', value: (e) => (e.type === 'medicamento' ? e.purpose || null : null), width: 24 },
     { header: 'Síntoma', value: (e) => (e.type === 'medicamento' ? e.symptom || null : null), width: 30 },
   ],
   bano: [
