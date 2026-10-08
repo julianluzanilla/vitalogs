@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { AMOUNTS, OBS_PRESETS, TYPES, ZONES, type EntryType } from '../../shared/model';
 import { deleteEntry, newId, restoreEntry, saveEntry } from '../data/store';
-import { useMeds } from '../hooks/useData';
+import { useMeds, useProfile } from '../hooks/useData';
 import { useToast } from '../hooks/useToast';
-import { entryFromForm, validateForm, type FormState } from '../lib/form';
+import { bmi, bmiLabel, bodyOf, fmt1, navyFat, navyMissing } from '../lib/body';
+import { dec, entryFromForm, validateForm, type FormState } from '../lib/form';
 import { intLabel } from '../lib/format';
 import { ConfirmDialog } from './Dialog';
 import { Icon, IconChip } from './Icon';
@@ -15,6 +16,7 @@ export function EntrySheet({ initial, onClose }: { initial: FormState; onClose: 
   const [f, setF] = useState<FormState>(initial);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const meds = useMeds();
+  const body = bodyOf(useProfile());
   const toast = useToast();
 
   const set = (p: Partial<FormState>) => setF((s) => ({ ...s, ...p, err: '' }));
@@ -239,7 +241,9 @@ export function EntrySheet({ initial, onClose }: { initial: FormState; onClose: 
                 </>
               )}
 
-              {fields && (t === 'lpm' || t === 'presion' || t === 'bano') && (
+              {fields && t === 'peso' && <PesoFields f={f} set={set} body={body} />}
+
+              {fields && (t === 'lpm' || t === 'presion' || t === 'bano' || t === 'peso') && (
                 <div className="field" style={{ gap: 10 }}>
                   <span className="label">Observaciones · opcional</span>
                   {t !== 'bano' && (
@@ -301,5 +305,59 @@ export function EntrySheet({ initial, onClose }: { initial: FormState; onClose: 
         );
       }}
     </Sheet>
+  );
+}
+
+/** Peso, medidas opcionales y vista previa de IMC / % de grasa. */
+function PesoFields({ f, set, body }: { f: FormState; set: (p: Partial<FormState>) => void; body: ReturnType<typeof bodyOf> }) {
+  const m = { waist: dec(f.waist), neck: dec(f.neck), hip: dec(f.hip) };
+  const w = dec(f.weight);
+  const i = w ? bmi(w, body.height) : null;
+  const fat = navyFat(m, body);
+  const missing = navyMissing(m, body);
+  const measure = (k: 'waist' | 'neck' | 'hip' | 'fat', label: string, unit: string) => (
+    <label className="inline-field">
+      <span className="lbl">{label}</span>
+      <input type="number" inputMode="decimal" step="0.1" placeholder="—" value={f[k]} onChange={(e) => set({ [k]: e.target.value })} />
+      <span className="unit">{unit}</span>
+    </label>
+  );
+
+  return (
+    <>
+      <label className="big-card">
+        <span className="label">Peso</span>
+        <input className="big-input" type="number" inputMode="decimal" step="0.1" placeholder="70.5" value={f.weight} onChange={(e) => set({ weight: e.target.value })} />
+        <span className="label" style={{ fontSize: 14 }}>
+          kilogramos
+        </span>
+      </label>
+      {(i || fat) && (
+        <div className="body-calc">
+          {i && (
+            <span>
+              <small>IMC</small>
+              <b>{fmt1(i)}</b>
+              {bmiLabel(i)}
+            </span>
+          )}
+          {fat && (
+            <span>
+              <small>Grasa (US Navy)</small>
+              <b>{fmt1(fat)} %</b>
+              estimada
+            </span>
+          )}
+        </div>
+      )}
+      <div className="field" style={{ gap: 10 }}>
+        <span className="label">Medidas · opcional</span>
+        {measure('waist', body.sex === 'F' ? 'Cintura (parte más estrecha)' : 'Cintura (a la altura del ombligo)', 'cm')}
+        {measure('neck', 'Cuello (debajo de la laringe)', 'cm')}
+        {body.sex !== 'M' && measure('hip', 'Cadera (parte más ancha)', 'cm')}
+        {measure('fat', '% grasa de báscula', '%')}
+        {missing && <div className="hint">{missing}</div>}
+      </div>
+    </>
   );
 }

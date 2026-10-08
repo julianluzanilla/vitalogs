@@ -1,8 +1,8 @@
 // Modelo de datos compartido entre el cliente y las Functions.
 
-export type EntryType = 'dolor' | 'mareo' | 'lpm' | 'presion' | 'medicamento' | 'bano';
+export type EntryType = 'dolor' | 'mareo' | 'lpm' | 'presion' | 'medicamento' | 'bano' | 'peso';
 
-export const ORDER: EntryType[] = ['dolor', 'mareo', 'lpm', 'presion', 'medicamento', 'bano'];
+export const ORDER: EntryType[] = ['dolor', 'mareo', 'lpm', 'presion', 'medicamento', 'bano', 'peso'];
 
 export const TYPES: Record<EntryType, { label: string; title: string; icon: string }> = {
   dolor: { label: 'Dolor', title: 'Dolor', icon: 'dolor' },
@@ -11,6 +11,7 @@ export const TYPES: Record<EntryType, { label: string; title: string; icon: stri
   presion: { label: 'Presión', title: 'Presión arterial', icon: 'presion' },
   medicamento: { label: 'Medicamento', title: 'Medicamento', icon: 'medicamento' },
   bano: { label: 'Baño', title: 'Baño', icon: 'bano' },
+  peso: { label: 'Peso', title: 'Peso y medidas', icon: 'peso' },
 };
 
 export const ZONES = ['Cabeza', 'Espalda', 'Ciática', 'Cuello', 'Ojos', 'Muslo', 'Pantorrilla', 'Otro'] as const;
@@ -50,6 +51,8 @@ export interface LpmData { value: number; obs?: string }
 export interface PresionData { sys: number; dia: number; pulse?: number | null; obs?: string }
 export interface MedicamentoData { med: string; dose?: string; purpose?: string; symptom?: string }
 export interface BanoData { kind: 'pipi' | 'popo'; amount: Amount; obs?: string }
+/** Peso en kg; circunferencias en cm (para % de grasa US Navy); `fat` = % de grasa medido (báscula, etc.). */
+export interface PesoData { weight: number; waist?: number | null; neck?: number | null; hip?: number | null; fat?: number | null; obs?: string }
 
 interface Base<T extends EntryType> {
   id: string;
@@ -66,8 +69,9 @@ export type LpmEntry = Base<'lpm'> & LpmData;
 export type PresionEntry = Base<'presion'> & PresionData;
 export type MedicamentoEntry = Base<'medicamento'> & MedicamentoData;
 export type BanoEntry = Base<'bano'> & BanoData;
+export type PesoEntry = Base<'peso'> & PesoData;
 
-export type Entry = DolorEntry | MareoEntry | LpmEntry | PresionEntry | MedicamentoEntry | BanoEntry;
+export type Entry = DolorEntry | MareoEntry | LpmEntry | PresionEntry | MedicamentoEntry | BanoEntry | PesoEntry;
 
 export interface Med {
   id: string;
@@ -79,10 +83,19 @@ export interface Med {
   deleted?: 0 | 1;
 }
 
+export type Sex = 'M' | 'F';
+
 export interface Profile {
   reportName: string;
+  /** Estatura en cm (para IMC y % de grasa). */
+  height?: number | null;
+  /** Sexo biológico: la fórmula US Navy es distinta para hombres y mujeres. */
+  sex?: Sex | null;
   updatedAt: number;
 }
+
+/** Límites aceptados para los datos corporales. */
+export const HEIGHT_RANGE = [50, 260] as const;
 
 export interface Me {
   id: string;
@@ -117,6 +130,7 @@ export const DATA_FIELDS: Record<EntryType, string[]> = {
   presion: ['sys', 'dia', 'pulse', 'obs'],
   medicamento: ['med', 'dose', 'purpose', 'symptom'],
   bano: ['kind', 'amount', 'obs'],
+  peso: ['weight', 'waist', 'neck', 'hip', 'fat', 'obs'],
 };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -166,6 +180,9 @@ export function sanitizeEntry(raw: unknown): Entry | null {
     case 'bano':
       ok = (r.kind === 'pipi' || r.kind === 'popo') && (AMOUNTS as readonly string[]).includes(r.amount as string) && optStr(r.obs, 1000);
       break;
+    case 'peso':
+      ok = isNum(r.weight, 1, 500) && optNum(r.waist, 10, 300) && optNum(r.neck, 10, 300) && optNum(r.hip, 10, 300) && optNum(r.fat, 1, 75) && optStr(r.obs, 1000);
+      break;
   }
   if (!ok) return null;
   const data: Record<string, unknown> = {};
@@ -181,6 +198,19 @@ export function sanitizeMed(raw: unknown): Med | null {
   if (!deleted && !str(r.name, 120)) return null;
   if (!optStr(r.dose, 120) || !optStr(r.purpose, 120)) return null;
   return { id: r.id as string, name: (r.name as string) || '', dose: (r.dose as string) || '', purpose: (r.purpose as string) || '', updatedAt: r.updatedAt as number, deleted };
+}
+
+/** Valida un perfil recibido por la API. Los campos corporales ausentes quedan `undefined` (no se tocan). */
+export function sanitizeProfile(raw: unknown): Profile | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const p = raw as Record<string, unknown>;
+  if (typeof p.reportName !== 'string' || p.reportName.length > 120 || !isNum(p.updatedAt, 0, 1e14)) return null;
+  if (p.height !== undefined && !optNum(p.height, HEIGHT_RANGE[0], HEIGHT_RANGE[1])) return null;
+  if (p.sex !== undefined && p.sex !== null && p.sex !== 'M' && p.sex !== 'F') return null;
+  const out: Profile = { reportName: p.reportName, updatedAt: p.updatedAt as number };
+  if (p.height !== undefined) out.height = (p.height as number | null) ?? null;
+  if (p.sex !== undefined) out.sex = (p.sex as Sex | null) ?? null;
+  return out;
 }
 
 /** Separa los campos propios del tipo para guardarlos como JSON. */

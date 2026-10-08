@@ -1853,3 +1853,102 @@ html.dark .tag.warn {
   width: 38px;
   height: 38px;
 }
+
+/* Mosaico de tipos: si queda uno solo en la última fila, ocupa todo el ancho. */
+.tiles .tile:last-child:nth-child(3n + 1) {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+}
+
+/* Peso: vista previa de IMC / % de grasa */
+.body-calc {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 8px;
+}
+.body-calc > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface2);
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.body-calc small {
+  font-size: 12px;
+}
+.body-calc b {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Perfil: datos corporales */
+.body-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+.body-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 10px;
+  align-items: center;
+}
+.body-card .segmented {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Reportes: conteo por día (pipí / popó) */
+.daily-wrap {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  max-height: 260px;
+  overflow: auto;
+}
+.daily-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.daily-table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+.daily-table td {
+  text-align: right;
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+.daily-table th:first-child,
+.daily-table td:first-child {
+  text-align: left;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.daily-table td b {
+  color: var(--ink);
+  font-weight: 800;
+}
+.daily-table small {
+  color: var(--muted);
+  font-size: 12px;
+}

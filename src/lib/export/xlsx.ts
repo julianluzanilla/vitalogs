@@ -1,8 +1,9 @@
 import ExcelJS from 'exceljs';
 import { countLabel, longDate } from '../format';
+import { AMOUNTS } from '../../../shared/model';
 import type { Report } from '../report';
-import { reportFileBase } from '../report';
-import { COLUMNS } from './columns';
+import { hasPartialNote, PARTIAL_NOTE, reportFileBase } from '../report';
+import { columnsFor, DAILY_HEADERS, type Column } from './columns';
 import { XLSX_TYPE, type ExportFile } from './share';
 
 const PRIMARY = 'FF0A5E80';
@@ -44,28 +45,42 @@ export async function buildXlsx(r: Report): Promise<ExportFile> {
       row.getCell(2).alignment = { horizontal: 'right' };
       row.eachCell((c) => (c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TILE } }));
     }
+    if (hasPartialNote(sec)) ws.addRow([PARTIAL_NOTE]).font = { italic: true, size: 9, color: { argb: MUTED } };
     ws.addRow([]);
   }
 
-  // ── Una hoja por tipo ──
-  for (const sec of r.sections) {
-    const cols = COLUMNS[sec.type];
-    const sheet = wb.addWorksheet(sec.title.slice(0, 31), { views: [{ state: 'frozen', ySplit: 1 }] });
+  const tableSheet = (name: string, cols: Pick<Column, 'header' | 'width'>[]) => {
+    const sheet = wb.addWorksheet(name.slice(0, 31), { views: [{ state: 'frozen', ySplit: 1 }] });
     sheet.columns = cols.map((c) => ({ header: c.header, width: c.width }));
     const head = sheet.getRow(1);
     head.font = { bold: true, color: { argb: 'FFFFFFFF' } };
     head.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PRIMARY } };
     head.alignment = { vertical: 'middle' };
     head.height = 20;
+    sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cols.length } };
+    return sheet;
+  };
+
+  // ── Una hoja por sección (y para pipí / popó, otra con el conteo por día) ──
+  for (const sec of r.sections) {
+    if (sec.daily) {
+      const daily = tableSheet(`${sec.title} por día`, DAILY_HEADERS.map((h, i) => ({ header: h, width: i ? 10 : 12 })));
+      for (const d of sec.daily.slice().reverse()) {
+        const row = daily.addRow([excelDate(d.date), d.total, ...AMOUNTS.map((a) => d.amounts[a])]);
+        row.getCell(1).numFmt = 'dd/mm/yyyy';
+        if (d.partial) row.getCell(1).note = 'Día en curso al generar el reporte';
+      }
+    }
+    const cols = columnsFor(sec.type, sec.entries, r.body);
+    const sheet = tableSheet(sec.title, cols);
     // Orden cronológico ascendente: más cómodo para filtrar y graficar.
     for (const e of sec.entries.slice().reverse()) {
-      const row = sheet.addRow(cols.map((c) => (c.header === 'Fecha' ? excelDate(e.date) : c.value(e))));
+      const row = sheet.addRow(cols.map((c) => (c.header === 'Fecha' ? excelDate(e.date) : c.value(e, r.body))));
       row.getCell(1).numFmt = 'dd/mm/yyyy';
     }
     cols.forEach((c, i) => {
       if (c.header === 'Observaciones' || c.header === 'Síntoma') sheet.getColumn(i + 1).alignment = { wrapText: true, vertical: 'top' };
     });
-    sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cols.length } };
   }
 
   const buf = await wb.xlsx.writeBuffer();

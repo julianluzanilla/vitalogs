@@ -1,9 +1,11 @@
 import { jsPDF } from 'jspdf';
+import { AMOUNTS } from '../../../shared/model';
 import { autoTable } from 'jspdf-autotable';
 import { countLabel, longDate } from '../format';
+import { shortDate } from '../format';
 import type { Report } from '../report';
-import { reportFileBase } from '../report';
-import { COLUMNS, dmy } from './columns';
+import { hasPartialNote, PARTIAL_NOTE, reportFileBase } from '../report';
+import { columnsFor, DAILY_HEADERS, dmy } from './columns';
 import { PDF_TYPE, type ExportFile } from './share';
 
 const INK: [number, number, number] = [11, 46, 59];
@@ -17,6 +19,13 @@ const TILE: [number, number, number] = [239, 247, 255];
 const clean = (s: string) => s.replace(/[–—]/g, '-').replace(/…/g, '...');
 
 const M = 16; // margen (mm)
+
+const tableStyle = {
+  theme: 'grid' as const,
+  styles: { font: 'helvetica', fontSize: 9, textColor: INK, lineColor: LINE, lineWidth: 0.2, cellPadding: 1.8, overflow: 'linebreak' as const },
+  headStyles: { fillColor: PRIMARY, textColor: 255, fontStyle: 'bold' as const },
+  alternateRowStyles: { fillColor: [247, 251, 253] as [number, number, number] },
+};
 
 /** Logo dibujado con primitivas (jsPDF no dibuja SVG). */
 function drawLogo(doc: jsPDF, x: number, y: number, size: number) {
@@ -122,22 +131,54 @@ export function buildPdf(r: Report): ExportFile {
     });
     y += th + 5;
 
-    const cols = COLUMNS[sec.type];
+    if (hasPartialNote(sec)) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...MUTED);
+      doc.text(clean(PARTIAL_NOTE), M, y - 1);
+      y += 4;
+    }
+
+    if (sec.daily) {
+      ensure(20);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...INK);
+      doc.text('Por día', M, y);
+      autoTable(doc, {
+        startY: y + 2,
+        margin: { left: M, right: M, bottom: 18 },
+        head: [DAILY_HEADERS],
+        body: sec.daily.map((d) => [
+          clean(`${shortDate(d.date)}${d.partial ? ' (en curso)' : ''}`),
+          d.total,
+          ...AMOUNTS.map((a) => d.amounts[a] || ''),
+        ]),
+        ...tableStyle,
+        columnStyles: Object.fromEntries(DAILY_HEADERS.map((_, i) => [i, i ? { halign: 'right' as const } : {}])),
+      });
+      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+      ensure(20);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...INK);
+      doc.text('Detalle', M, y);
+      y += 2;
+    }
+
+    const cols = columnsFor(sec.type, sec.entries, r.body);
     autoTable(doc, {
       startY: y,
       margin: { left: M, right: M, bottom: 18 },
       head: [cols.map((c) => c.header)],
       body: sec.entries.map((e) =>
         cols.map((c) => {
-          const v = c.value(e);
+          const v = c.value(e, r.body);
           if (c.header === 'Fecha' && typeof v === 'string') return dmy(v);
           return v == null ? '' : clean(String(v));
         }),
       ),
-      theme: 'grid',
-      styles: { font: 'helvetica', fontSize: 9, textColor: INK, lineColor: LINE, lineWidth: 0.2, cellPadding: 1.8, overflow: 'linebreak' },
-      headStyles: { fillColor: PRIMARY, textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [247, 251, 253] },
+      ...tableStyle,
       columnStyles: Object.fromEntries(cols.map((c, i) => [i, c.numeric ? { halign: 'right' as const } : {}])),
     });
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;

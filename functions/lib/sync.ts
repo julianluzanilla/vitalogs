@@ -2,6 +2,7 @@ import {
   entryData,
   sanitizeEntry,
   sanitizeMed,
+  sanitizeProfile,
   SYNC_BATCH,
   type Entry,
   type Med,
@@ -63,9 +64,8 @@ export async function sync(db: D1Database, userId: string, body: SyncRequest): P
   }
   let profile: Profile | null = null;
   if (body?.profile) {
-    const p = body.profile;
-    if (typeof p.reportName !== 'string' || p.reportName.length > 120 || !Number.isFinite(p.updatedAt)) throw new SyncError('Perfil no válido');
-    profile = { reportName: p.reportName, updatedAt: p.updatedAt };
+    profile = sanitizeProfile(body.profile);
+    if (!profile) throw new SyncError('Perfil no válido');
   }
 
   const n = entries.length + meds.length + (profile ? 1 : 0);
@@ -103,16 +103,22 @@ export async function sync(db: D1Database, userId: string, body: SyncRequest): P
       );
     }
     if (profile) {
+      // Un cliente de versión anterior no envía los datos corporales: en ese caso se conservan.
+      const hasHeight = profile.height !== undefined ? 1 : 0;
+      const hasSex = profile.sex !== undefined ? 1 : 0;
       stmts.push(
         db
           .prepare(
-            `INSERT INTO profiles (user_id, report_name, updated_at, server_seq)
-             VALUES (?, ?, ?, ${seqExpr})
+            `INSERT INTO profiles (user_id, report_name, height_cm, sex, updated_at, server_seq)
+             VALUES (?, ?, ?, ?, ?, ${seqExpr})
              ON CONFLICT(user_id) DO UPDATE SET
-               report_name = excluded.report_name, updated_at = excluded.updated_at, server_seq = excluded.server_seq
+               report_name = excluded.report_name,
+               height_cm = CASE WHEN ? THEN excluded.height_cm ELSE profiles.height_cm END,
+               sex = CASE WHEN ? THEN excluded.sex ELSE profiles.sex END,
+               updated_at = excluded.updated_at, server_seq = excluded.server_seq
              WHERE excluded.updated_at >= profiles.updated_at`,
           )
-          .bind(userId, profile.reportName, profile.updatedAt, userId, n - 1 - i++),
+          .bind(userId, profile.reportName, profile.height ?? null, profile.sex ?? null, profile.updatedAt, userId, n - 1 - i++, hasHeight, hasSex),
       );
     }
     await db.batch(stmts);
@@ -127,13 +133,13 @@ export async function sync(db: D1Database, userId: string, body: SyncRequest): P
     db
       .prepare('SELECT id, name, dose, purpose, updated_at, deleted, server_seq FROM meds WHERE user_id = ? AND server_seq > ? ORDER BY server_seq LIMIT ?')
       .bind(userId, cursor, PAGE + 1),
-    db.prepare('SELECT report_name, updated_at, server_seq FROM profiles WHERE user_id = ? AND server_seq > ?').bind(userId, cursor),
+    db.prepare('SELECT report_name, height_cm, sex, updated_at, server_seq FROM profiles WHERE user_id = ? AND server_seq > ?').bind(userId, cursor),
   ]);
 
   const seq = (seqRes.results[0] as { seq: number } | undefined)?.seq ?? 0;
   let entRows = entRes.results as unknown as EntryRow[];
   let medRows = medRes.results as unknown as MedRow[];
-  const profRow = profRes.results[0] as { report_name: string; updated_at: number; server_seq: number } | undefined;
+  const profRow = profRes.results[0] as { report_name: string; height_cm: number | null; sex: 'M' | 'F' | null; updated_at: number; server_seq: number } | undefined;
 
   // Si alguna lista se cortó, el nuevo cursor es el menor seq que aún falta, menos 1.
   let next = seq;
@@ -165,6 +171,9 @@ export async function sync(db: D1Database, userId: string, body: SyncRequest): P
         }) as Entry,
     ),
     meds: medRows.map((r) => ({ id: r.id, name: r.name, dose: r.dose, purpose: r.purpose, updatedAt: r.updated_at, deleted: r.deleted ? 1 : 0 })),
-    profile: profRow && profRow.server_seq <= next ? { reportName: profRow.report_name, updatedAt: profRow.updated_at } : null,
+    profile:
+      profRow && profRow.server_seq <= next
+        ? { reportName: profRow.report_name, height: profRow.height_cm, sex: profRow.sex, updatedAt: profRow.updated_at }
+        : null,
   };
 }

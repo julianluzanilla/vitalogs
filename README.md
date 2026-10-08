@@ -1,6 +1,6 @@
 # VitaLogs
 
-Registro personal de salud (dolor, mareo, pulso, presión arterial, medicamentos y baño) con reportes PDF/Excel para el médico.
+Registro personal de salud (dolor, mareo, pulso, presión arterial, medicamentos, baño y peso con IMC y % de grasa) con reportes PDF/Excel para el médico.
 PWA en español: se instala en iPhone como app (barra inferior, hojas deslizables) y funciona como webapp en PC/iPad (barra lateral, modales).
 
 **Producción:** https://vitalogs.luzaron.uk · **Administración:** https://vitalogs.luzaron.uk/admin

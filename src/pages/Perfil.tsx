@@ -5,8 +5,9 @@ import { Icon, IconChip } from '../components/Icon';
 import { LogoutDialog } from '../components/LogoutDialog';
 import { Sheet } from '../components/Sheet';
 import { MedPurposeList } from '../components/MedPurposeList';
-import { addMed, buildBackup, removeMed, restoreBackup, setReportName, updateMed } from '../data/store';
-import { useEntries, useMeds } from '../hooks/useData';
+import { HEIGHT_RANGE, type Sex } from '../../shared/model';
+import { addMed, buildBackup, removeMed, restoreBackup, setProfile, setReportName, updateMed } from '../data/store';
+import { useEntries, useMeds, useProfile } from '../hooks/useData';
 import { useMe, useSession } from '../hooks/useSession';
 import { useTheme } from '../hooks/useTheme';
 import { useToast } from '../hooks/useToast';
@@ -76,6 +77,8 @@ export function Perfil() {
               />
             </label>
           </section>
+
+          <BodyCard />
 
           <section className="card settings">
             <button className="setting" onClick={toggle} role="switch" aria-checked={dark}>
@@ -149,6 +152,71 @@ export function Perfil() {
         </Sheet>
       )}
     </>
+  );
+}
+
+/** Estatura y sexo: se usan para calcular IMC y % de grasa (US Navy) en los registros de peso. */
+function BodyCard() {
+  const profile = useProfile();
+  const toast = useToast();
+  const height = profile?.height ?? null;
+  const sex = profile?.sex ?? null;
+  const [draft, setDraft] = useState(height ? String(height) : '');
+  const editing = useRef(false);
+
+  useEffect(() => {
+    if (!editing.current) setDraft(height ? String(height) : '');
+  }, [height]);
+
+  const commit = () => {
+    editing.current = false;
+    const v = draft.trim() === '' ? null : Math.round(Number(draft.replace(',', '.')));
+    if (v !== null && !(v >= HEIGHT_RANGE[0] && v <= HEIGHT_RANGE[1])) {
+      toast(`Estatura entre ${HEIGHT_RANGE[0]} y ${HEIGHT_RANGE[1]} cm`);
+      setDraft(height ? String(height) : '');
+      return;
+    }
+    if (v !== height) void setProfile({ height: v });
+  };
+  const pickSex = (s: Sex) => void setProfile({ sex: s === sex ? null : s });
+
+  return (
+    <section className="card body-card">
+      <div className="report-sec-head">
+        <IconChip name="peso" size="sm" />
+        <h2 className="section-title">Datos corporales</h2>
+      </div>
+      <div className="body-fields">
+        <label className="inline-field">
+          <span className="lbl">Estatura</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="—"
+            value={draft}
+            onFocus={() => (editing.current = true)}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
+            aria-label="Estatura en centímetros"
+          />
+          <span className="unit">cm</span>
+        </label>
+        <div className="segmented" role="radiogroup" aria-label="Sexo">
+          {(
+            [
+              ['M', 'Hombre'],
+              ['F', 'Mujer'],
+            ] as const
+          ).map(([k, l]) => (
+            <button key={k} type="button" role="radio" aria-checked={sex === k} className={sex === k ? 'on' : ''} onClick={() => pickSex(k)}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="hint">Se usan para calcular tu IMC y tu % de grasa (fórmula de la US Navy) en los registros de peso.</div>
+    </section>
   );
 }
 

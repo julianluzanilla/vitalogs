@@ -23,6 +23,11 @@ export interface FormState {
   symptom: string;
   kind: '' | 'pipi' | 'popo';
   amount: Amount;
+  weight: string;
+  waist: string;
+  neck: string;
+  hip: string;
+  fat: string;
   err: string;
 }
 
@@ -48,6 +53,11 @@ export function blankForm(type: EntryType | null, now = new Date()): FormState {
     symptom: '',
     kind: '',
     amount: 'Regular',
+    weight: '',
+    waist: '',
+    neck: '',
+    hip: '',
+    fat: '',
     err: '',
   };
 }
@@ -79,6 +89,9 @@ export function formFromEntry(e: Entry): FormState {
     case 'bano':
       Object.assign(f, { kind: e.kind, amount: e.amount, obs: e.obs || '' });
       break;
+    case 'peso':
+      Object.assign(f, { weight: s(e.weight), waist: s(e.waist), neck: s(e.neck), hip: s(e.hip), fat: s(e.fat), obs: e.obs || '' });
+      break;
   }
   return f;
 }
@@ -92,6 +105,16 @@ const optInt = (v: string) => {
   return v.trim() !== '' && Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
 };
 
+/** Número con decimales (acepta coma decimal), redondeado a 0.1; null si está vacío o no es válido. */
+export const dec = (v: string) => {
+  const n = Number(v.replace(',', '.'));
+  return v.trim() !== '' && Number.isFinite(n) && n > 0 ? Math.round(n * 10) / 10 : null;
+};
+const inRange = (v: string, min: number, max: number) => {
+  const n = dec(v);
+  return n != null && n >= min && n <= max;
+};
+
 /** Devuelve el mensaje de error de validación, o '' si es válido. */
 export function validateForm(f: FormState): string {
   const t = f.type;
@@ -102,6 +125,12 @@ export function validateForm(f: FormState): string {
   if (t === 'presion' && (!posInt(f.sys) || !posInt(f.dia))) return 'Ingresa sistólica y diastólica.';
   if (t === 'medicamento' && !f.med) return 'Selecciona un medicamento.';
   if (t === 'bano' && !f.kind) return 'Selecciona pipí o popó.';
+  if (t === 'peso') {
+    if (!inRange(f.weight, 1, 500)) return 'Ingresa tu peso en kg.';
+    for (const [k, label] of [['waist', 'cintura'], ['neck', 'cuello'], ['hip', 'cadera']] as const)
+      if (f[k].trim() && !inRange(f[k], 10, 300)) return `Revisa la medida de ${label} (cm).`;
+    if (f.fat.trim() && !inRange(f.fat, 1, 75)) return 'El % de grasa debe estar entre 1 y 75.';
+  }
   return '';
 }
 
@@ -130,6 +159,8 @@ export function entryFromForm(f: FormState, id: string, updatedAt: number): Entr
       return { ...base, type: 'medicamento', med: f.med, dose: f.dose.trim() || undefined, purpose: f.purpose.trim() || undefined, symptom: f.symptom.trim() || undefined };
     case 'bano':
       return { ...base, type: 'bano', kind: f.kind as 'pipi' | 'popo', amount: f.amount, obs };
+    case 'peso':
+      return { ...base, type: 'peso', weight: dec(f.weight)!, waist: dec(f.waist), neck: dec(f.neck), hip: dec(f.hip), fat: dec(f.fat), obs };
     default:
       throw new Error('Tipo de registro no seleccionado');
   }

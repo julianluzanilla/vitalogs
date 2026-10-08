@@ -1,4 +1,5 @@
 import type { Entry } from '../../shared/model';
+import { bmi, fmt1, navyFat, type Body } from './body';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -56,7 +57,7 @@ export interface Summary {
   badge: string;
 }
 
-export function summary(e: Entry): Summary {
+export function summary(e: Entry, body: Body = {}): Summary {
   switch (e.type) {
     case 'dolor':
       return {
@@ -89,6 +90,15 @@ export function summary(e: Entry): Summary {
       return { title: e.med, detail: [e.dose, e.purpose, e.symptom ? `Por: ${e.symptom}` : ''].filter(Boolean).join(' · ') || '—', badge: '' };
     case 'bano':
       return { title: `Baño · ${e.kind === 'popo' ? 'Popó' : 'Pipí'}`, detail: [e.amount, e.obs].filter(Boolean).join(' · '), badge: '' };
+    case 'peso': {
+      const i = bmi(e.weight, body.height);
+      const fat = e.fat ?? navyFat(e, body);
+      return {
+        title: 'Peso',
+        detail: [i ? `IMC ${fmt1(i)}` : '', fat ? `Grasa ${fmt1(fat)} %` : '', e.waist ? `Cintura ${fmt1(e.waist)} cm` : '', e.obs].filter(Boolean).join(' · ') || 'Sin medidas',
+        badge: `${fmt1(e.weight)} kg`,
+      };
+    }
   }
 }
 

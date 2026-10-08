@@ -1,9 +1,11 @@
 import { TYPES, type Entry } from '../../shared/model';
+import { useProfile } from '../hooks/useData';
+import { bodyOf, type Body } from '../lib/body';
 import { summary } from '../lib/format';
 import { IconChip } from './Icon';
 
-export function EntryRow({ entry, onOpen }: { entry: Entry; onOpen: (e: Entry) => void }) {
-  const x = summary(entry);
+export function EntryRow({ entry, body, onOpen }: { entry: Entry; body: Body; onOpen: (e: Entry) => void }) {
+  const x = summary(entry, body);
   return (
     <button className="row" onClick={() => onOpen(entry)}>
       <span className="row-time">{entry.time}</span>
@@ -18,10 +20,11 @@ export function EntryRow({ entry, onOpen }: { entry: Entry; onOpen: (e: Entry) =
 }
 
 export function EntryList({ entries, onOpen }: { entries: Entry[]; onOpen: (e: Entry) => void }) {
+  const body = bodyOf(useProfile());
   return (
     <div className="list">
       {entries.map((e) => (
-        <EntryRow key={e.id} entry={e} onOpen={onOpen} />
+        <EntryRow key={e.id} entry={e} body={body} onOpen={onOpen} />
       ))}
     </div>
   );

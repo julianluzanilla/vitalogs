@@ -1,5 +1,5 @@
 // Escrituras locales: se guardan en IndexedDB y se encolan para sincronizar.
-import { sanitizeEntry, sanitizeMed, type Entry, type Med, type Profile } from '../../shared/model';
+import { HEIGHT_RANGE, sanitizeEntry, sanitizeMed, type Entry, type Med, type Profile } from '../../shared/model';
 import { db, getKV, setKV } from './db';
 import { scheduleSync } from './sync';
 
@@ -76,8 +76,14 @@ export async function removeMed(id: string) {
 }
 
 export async function setReportName(reportName: string) {
-  const p: Profile = { reportName, updatedAt: now() };
+  await setProfile({ reportName });
+}
+
+/** Actualiza campos del perfil conservando el resto (nombre, estatura, sexo). */
+export async function setProfile(patch: Partial<Omit<Profile, 'updatedAt'>>) {
   await db.transaction('rw', [db.kv, db.outbox], async () => {
+    const cur = await getKV<Profile>('profile');
+    const p: Profile = { reportName: '', height: null, sex: null, ...cur, ...patch, updatedAt: now() };
     await setKV('profile', p);
     await db.outbox.put({ key: 'profile', kind: 'profile', id: 'profile', updatedAt: p.updatedAt });
   });
@@ -91,6 +97,8 @@ export interface Backup {
   version: 2;
   exported: string;
   name: string;
+  height?: number | null;
+  sex?: Profile['sex'];
   entries: Entry[];
   meds: Med[];
 }
@@ -99,7 +107,7 @@ export async function buildBackup(): Promise<Backup> {
   const entries = (await db.entries.toArray()).filter((e) => !e.deleted);
   const meds = (await db.meds.toArray()).filter((m) => !m.deleted);
   const profile = await getKV<Profile>('profile');
-  return { app: 'VitaLogs', version: 2, exported: new Date().toISOString(), name: profile?.reportName || '', entries, meds };
+  return { app: 'VitaLogs', version: 2, exported: new Date().toISOString(), name: profile?.reportName || '', height: profile?.height ?? null, sex: profile?.sex ?? null, entries, meds };
 }
 
 /**
@@ -107,7 +115,7 @@ export async function buildBackup(): Promise<Backup> {
  * Acepta también el formato del prototipo (ids "e123", números como texto, meds sin id).
  */
 export async function restoreBackup(raw: unknown): Promise<number> {
-  const data = raw as { entries?: unknown[]; meds?: unknown[]; name?: string };
+  const data = raw as { entries?: unknown[]; meds?: unknown[]; name?: string; height?: unknown; sex?: unknown };
   if (!data || !Array.isArray(data.entries)) throw new Error('Archivo no válido');
   const t = now();
   const entries: Entry[] = [];
@@ -132,7 +140,12 @@ export async function restoreBackup(raw: unknown): Promise<number> {
       ...meds.map((m) => ({ key: `med:${m.id}`, kind: 'med' as const, id: m.id, updatedAt: m.updatedAt })),
     ]);
   });
-  if (data.name && !(await getKV<Profile>('profile'))?.reportName) await setReportName(data.name);
+  const cur = await getKV<Profile>('profile');
+  const patch: Partial<Profile> = {};
+  if (data.name && !cur?.reportName) patch.reportName = data.name;
+  if (typeof data.height === 'number' && data.height >= HEIGHT_RANGE[0] && data.height <= HEIGHT_RANGE[1] && !cur?.height) patch.height = data.height;
+  if ((data.sex === 'M' || data.sex === 'F') && !cur?.sex) patch.sex = data.sex;
+  if (Object.keys(patch).length) await setProfile(patch);
   scheduleSync(100);
   return entries.length;
 }
@@ -149,8 +162,8 @@ function normalizeLegacy(r: Record<string, unknown>, t: number): Record<string, 
     out[k] = Number.isFinite(n) ? n : v;
   };
   if (typeof out.id !== 'string' || !out.id) out.id = newId();
-  for (const k of ['value', 'sys', 'dia', 'intensity']) if (k in out) num(k, false);
-  for (const k of ['duration', 'pulse']) if (k in out) num(k, true);
+  for (const k of ['value', 'sys', 'dia', 'intensity', 'weight']) if (k in out) num(k, false);
+  for (const k of ['duration', 'pulse', 'waist', 'neck', 'hip', 'fat']) if (k in out) num(k, true);
   for (const k of ['obs', 'zoneOther', 'dose', 'purpose', 'symptom']) if (out[k] === '') delete out[k];
   if (out.type === 'dolor') out.constant = !!out.constant;
   return out;
