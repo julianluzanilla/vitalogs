@@ -18,7 +18,7 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#EFF7FF',
+        background_color: '#061820',
         theme_color: '#EFF7FF',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
@@ -29,7 +29,8 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // Dependencias opcionales de jsPDF (html2canvas, DOMPurify, canvg) que la app no usa.
-        globIgnores: ['**/html2canvas-*.js', '**/purify.es-*.js', '**/index.es-*.js'],
+        // Las pantallas de arranque de iOS (~19 MB) solo las lee iOS al instalar; no se precargan.
+        globIgnores: ['**/html2canvas-*.js', '**/purify.es-*.js', '**/index.es-*.js', 'splash/**'],
         // exceljs/jspdf se precargan para poder exportar sin conexión.
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: '/index.html',
