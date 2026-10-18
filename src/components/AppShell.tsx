@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, useSyncExternalStore } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import type { Entry, EntryType } from '../../shared/model';
 import { getSyncState, subscribeSync } from '../data/sync';
@@ -136,6 +136,8 @@ export function AppShell() {
 
         {!wide && (
           <nav className="tabbar">
+            {/* Columna 2 es el "+": las pestañas ocupan 0, 1, 3 y 4. */}
+            {TABS.some((t) => t.to === pathname) && <span className="tab-ind" style={{ '--i': [0, 1, 3, 4][TABS.findIndex((t) => t.to === pathname)] } as CSSProperties} />}
             {TABS.slice(0, 2).map((t) => tab(t, 'tab'))}
             <div className="tab-plus">
               <button aria-label="Nuevo registro" onClick={() => openNew(null)}>

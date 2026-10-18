@@ -3,8 +3,9 @@ import { AMOUNTS } from '../../shared/model';
 import { useDisplayName } from '../components/AppShell';
 import { ExportSheet } from '../components/ExportSheet';
 import { Icon, IconChip } from '../components/Icon';
+import { Skeleton } from '../components/Skeleton';
 import { Chip } from '../components/TypeTiles';
-import { useEntries, useProfile } from '../hooks/useData';
+import { LOADING, useEntries, useProfile } from '../hooks/useData';
 import { useToast } from '../hooks/useToast';
 import type { ExportFile } from '../lib/export/share';
 import { copyText } from '../lib/clipboard';
@@ -151,7 +152,8 @@ export function Reportes() {
             Generado el {longDate(report.generated)} · {countLabel(report.total)}
           </div>
         </header>
-        {!report.sections.length && <div style={{ color: 'var(--muted)', fontSize: 15 }}>No hay registros en este periodo.</div>}
+        {entries === LOADING && <Skeleton rows={4} />}
+        {entries !== LOADING && !report.sections.length && <div style={{ color: 'var(--muted)', fontSize: 15 }}>No hay registros en este periodo.</div>}
         {report.sections.map((sec) => (
           <section className="section" key={sec.key}>
             <div className="report-sec-head">

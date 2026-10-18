@@ -4,10 +4,12 @@ import { db, getKV } from '../data/db';
 import { byNewest } from '../lib/format';
 
 const NONE: never[] = [];
+/** Lo que devuelve useEntries mientras IndexedDB aún no responde; se compara por identidad. */
+export const LOADING: Entry[] = [];
 
 /** Registros activos, del más reciente al más antiguo. */
 export function useEntries(): Entry[] {
-  return useLiveQuery(async () => (await db.entries.toArray()).filter((e) => !e.deleted).sort(byNewest), []) ?? NONE;
+  return useLiveQuery(async () => (await db.entries.toArray()).filter((e) => !e.deleted).sort(byNewest), []) ?? LOADING;
 }
 
 export function useMeds(): Med[] {

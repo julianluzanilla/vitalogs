@@ -555,7 +555,7 @@ main.main {
   display: flex;
   flex-direction: column;
   gap: 28px;
-  padding: 12px 20px calc(120px + var(--sab));
+  padding: 12px 20px calc(96px + var(--sab));
 }
 .shell.wide .content {
   padding: 44px 44px 64px;
@@ -563,21 +563,19 @@ main.main {
 
 .tabbar {
   position: fixed;
-  left: 12px;
-  right: 12px;
-  bottom: calc(10px + var(--sab));
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 10;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   align-items: center;
-  height: 68px;
-  padding: 0 6px;
-  border-radius: 26px;
+  height: calc(64px + var(--sab));
+  padding: 0 6px var(--sab);
   background: var(--navbg);
   -webkit-backdrop-filter: saturate(1.6) blur(18px);
   backdrop-filter: saturate(1.6) blur(18px);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
+  border-top: 1px solid var(--line);
 }
 .tab {
   display: flex;
@@ -593,6 +591,27 @@ main.main {
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
+  position: relative;
+}
+/* Pastilla bajo la pestaña activa; se desliza entre columnas (--i la pone AppShell). */
+.tab-ind {
+  position: absolute;
+  top: 7px;
+  left: 6px;
+  width: calc((100% - 12px) / 5);
+  height: 32px;
+  transform: translateX(calc(var(--i) * 100%));
+  transition: transform 0.32s cubic-bezier(0.3, 0.7, 0.2, 1);
+  pointer-events: none;
+}
+.tab-ind::before {
+  content: '';
+  display: block;
+  width: 56px;
+  height: 100%;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 .tab .ic {
   width: 22px;
@@ -606,17 +625,17 @@ main.main {
   justify-content: center;
 }
 .tab-plus button {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border: none;
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--primary);
   color: var(--onprimary);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(10, 94, 128, 0.3);
+  box-shadow: 0 2px 6px rgba(10, 94, 128, 0.25);
   transition: transform 0.12s;
 }
 .tab-plus button:active {
@@ -1640,7 +1659,7 @@ main.main {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(96px + var(--sab));
+  bottom: calc(76px + var(--sab));
   transform: translateX(-50%);
   z-index: 40;
   display: flex;
@@ -1681,23 +1700,75 @@ html.dark .toast-action {
   }
 }
 
-.splash {
-  min-height: 100vh;
-  min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Siluetas de carga */
+.skeleton .row,
+.skeleton .row:hover {
+  cursor: default;
+  background: transparent;
 }
-.splash img {
-  width: 64px;
-  height: 64px;
-  border-radius: 20px;
-  animation: pulse 1.2s ease-in-out infinite;
+.sk {
+  display: block;
+  flex: none;
+  border-radius: 7px;
+  background: var(--surface2);
+  animation: sk-pulse 1.2s ease-in-out infinite;
 }
-@keyframes pulse {
+@keyframes sk-pulse {
   50% {
-    opacity: 0.6;
-    transform: scale(0.96);
+    opacity: 0.5;
+  }
+}
+
+/* Mantener presionado: el relleno crece y al terminar confirma (ver HoldButton). */
+.hold {
+  position: relative;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+.hold::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--danger);
+  opacity: 0.22;
+  transform: scaleX(0);
+  transform-origin: left;
+  pointer-events: none;
+}
+.hold.holding::after {
+  animation: hold-fill 0.9s linear forwards;
+}
+@keyframes hold-fill {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Respuesta al tocar */
+.icon-btn,
+.tab {
+  transition: transform 0.12s;
+}
+.chip {
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.12s;
+}
+.icon-btn:active,
+.chip:active,
+.tab:active {
+  transform: scale(0.92);
+}
+.row:active {
+  background: var(--surface2);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-ind {
+    transition: none !important;
+  }
+  .sk {
+    animation: none;
   }
 }
 

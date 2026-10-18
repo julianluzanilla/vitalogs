@@ -6,7 +6,7 @@ import { useToast } from '../hooks/useToast';
 import { bmi, bmiLabel, bodyOf, fmt1, navyFat, navyMissing } from '../lib/body';
 import { dec, entryFromForm, validateForm, type FormState } from '../lib/form';
 import { intLabel } from '../lib/format';
-import { ConfirmDialog } from './Dialog';
+import { HoldButton } from './HoldButton';
 import { Icon, IconChip } from './Icon';
 import { Sheet } from './Sheet';
 import { MedPurposeList } from './MedPurposeList';
@@ -14,7 +14,6 @@ import { Chip, TypeTiles } from './TypeTiles';
 
 export function EntrySheet({ initial, onClose }: { initial: FormState; onClose: () => void }) {
   const [f, setF] = useState<FormState>(initial);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const meds = useMeds();
   const body = bodyOf(useProfile());
   const toast = useToast();
@@ -275,31 +274,24 @@ export function EntrySheet({ initial, onClose }: { initial: FormState; onClose: 
             {fields && (
               <div className="panel-foot">
                 {f.editing && (
-                  <button className="btn btn-danger trash btn-lg" title="Eliminar" aria-label="Eliminar registro" onClick={() => setConfirmDelete(true)}>
+                  <HoldButton
+                    className="btn btn-danger trash btn-lg"
+                    label="Eliminar registro"
+                    onTap={() => toast('Mantén presionado para eliminar')}
+                    onConfirm={async () => {
+                      const id = f.editing!;
+                      await deleteEntry(id);
+                      toast('Registro eliminado', { label: 'Deshacer', run: () => void restoreEntry(id) });
+                      close();
+                    }}
+                  >
                     <Icon name="trash" />
-                  </button>
+                  </HoldButton>
                 )}
                 <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={save}>
                   {f.editing ? 'Guardar cambios' : 'Guardar registro'}
                 </button>
               </div>
-            )}
-
-            {confirmDelete && (
-              <ConfirmDialog
-                title="¿Eliminar este registro?"
-                confirmLabel="Eliminar"
-                danger
-                onClose={() => setConfirmDelete(false)}
-                onConfirm={async () => {
-                  const id = f.editing!;
-                  await deleteEntry(id);
-                  toast('Registro eliminado', { label: 'Deshacer', run: () => void restoreEntry(id) });
-                  close();
-                }}
-              >
-                Se eliminará de todos tus dispositivos.
-              </ConfirmDialog>
             )}
           </>
         );

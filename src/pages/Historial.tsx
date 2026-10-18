@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import { ORDER, TYPES, type Entry, type EntryType } from '../../shared/model';
 import { useEntryOpener } from '../components/AppShell';
 import { EntryList } from '../components/EntryRow';
+import { Skeleton } from '../components/Skeleton';
 import { Chip } from '../components/TypeTiles';
-import { useEntries } from '../hooks/useData';
+import { LOADING, useEntries } from '../hooks/useData';
 import { countLabel, dayLabel } from '../lib/format';
 
 const PAGE = 60; // días por página, para historiales largos
@@ -38,7 +39,8 @@ export function Historial() {
           </Chip>
         ))}
       </div>
-      {!groups.length && <div className="empty">{filter === 'all' ? 'Aún no hay registros.' : 'No hay registros de este tipo.'}</div>}
+      {entries === LOADING && <Skeleton rows={6} />}
+      {entries !== LOADING && !groups.length && <div className="empty">{filter === 'all' ? 'Aún no hay registros.' : 'No hay registros de este tipo.'}</div>}
       {groups.slice(0, days).map((g) => (
         <section className="section" key={g.date} style={{ gap: 10 }}>
           <div className="group-head">
